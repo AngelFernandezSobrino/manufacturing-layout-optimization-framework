@@ -1,0 +1,82 @@
+Stations:
+  Size:
+    X: 0.8
+    Y: 0.8
+  Models:
+    InOut:
+      Storage:
+        - Type:
+          - Part1
+          Place:
+            X: 0.3
+            Y: 0.3
+        - Type: Part2
+          Place:
+            X: -0.3
+            Y: 0.3
+        - Type:
+          - Part3
+          Place:
+            X: 0.3
+            Y: 0.3
+
+    PartsStorage:
+      Storage:
+        - Type:
+          - Part1
+          Place:
+            X: 0.3
+            Y: 0.3
+        - Type:
+          - Part2
+          Place:
+            X: -0.3
+            Y: 0.3
+        - Type:
+          - Part3
+          Place:
+            X: 0.3
+            Y: -0.3
+
+    Robot1:
+      Transport:
+        Range: 1.4
+        Parts:
+          - Part1
+          - Part2
+          - Part3
+
+    Robot2:
+      Transport:
+        Range: 1.4
+        Parts:
+          - Part1
+          - Part2
+          - Part3
+
+
+    Press:
+      Storage:
+        - Type:
+          - Part1
+          Place:
+            X: 0.3
+            Y: 0.3
+          Enables:
+            - Storage:
+              - Type:
+                - Part2
+                Place:
+                  X: 0.3
+                  Y: 0.3
+                Enables:
+                  - Activity:
+                    - Activity1
+      Activity:
+        Activity1:
+          Uses:
+            - Part1
+            - Part2
+          Returns:
+            - Part3
+          TimeSpend: 3.0

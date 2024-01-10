@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "smartfactory-process-graph-optimization"
+version = "0.1.0"
+description = ""
+authors = ["Ángel Fernández Sobrino <fernandezsobrinoangel@gmail.com>"]
+readme = "README.md"
+packages = [{include = "smartfactory_process_graph_optimization"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyyaml = "^6.0.1"
+prettytable = "^3.9.0"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.8.0"
+types-pyyaml = "^6.0.12.12"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
