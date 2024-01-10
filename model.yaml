@@ -72,7 +72,7 @@ Stations:
                 Enables:
                   - Activity:
                     - Activity1
-      Activity:
+      Activities:
         Activity1:
           Uses:
             - Part1
