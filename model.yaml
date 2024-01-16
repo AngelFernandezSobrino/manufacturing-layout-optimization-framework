@@ -10,15 +10,21 @@ Stations:
           Place:
             X: 0.3
             Y: 0.3
+          Add: 0
+          Remove: 1
         - Type: Part2
           Place:
             X: -0.3
             Y: 0.3
+          Add: 0
+          Remove: 1
         - Type:
           - Part3
           Place:
             X: 0.3
             Y: 0.3
+          Add: 1
+          Remove: 0
 
     PartsStorage:
       Storage:
@@ -27,16 +33,22 @@ Stations:
           Place:
             X: 0.3
             Y: 0.3
+          Add: 1
+          Remove: 1
         - Type:
           - Part2
           Place:
             X: -0.3
             Y: 0.3
+          Add: 1
+          Remove: 1
         - Type:
           - Part3
           Place:
             X: 0.3
             Y: -0.3
+          Add: 1
+          Remove: 1
 
     Robot1:
       Transport:
@@ -62,21 +74,36 @@ Stations:
           Place:
             X: 0.3
             Y: 0.3
-          Enables:
-            - Storage:
-              - Type:
-                - Part2
-                Place:
-                  X: 0.3
-                  Y: 0.3
-                Enables:
-                  - Activity:
-                    - Activity1
+          Add: 1
+          Remove: 0
+        - Type:
+          - Part2
+          Place:
+            X: 0.3
+            Y: 0.3
+          Add: 1
+          Remove: 0
+          Requires:
+            - Part 1
+        - Type:
+          - Part3
+          Place:
+            X: 0.3
+            Y: 0.3
+          Add: 0
+          Remove: 1
       Activities:
-        Activity1:
-          Uses:
-            - Part1
-            - Part2
-          Returns:
-            - Part3
-          TimeSpend: 3.0
+        - Activity1
+
+Process:
+  Objectives:
+    - Part3
+
+  Part3:
+    - Activity1:
+        Requires:
+          - Part1
+          - Part2
+        Returns:
+          - Part3
+        TimeSpend: 3.0

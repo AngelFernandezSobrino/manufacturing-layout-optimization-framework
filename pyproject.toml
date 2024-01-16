@@ -10,6 +10,7 @@ packages = [{include = "smartfactory_process_graph_optimization"}]
 python = "^3.11"
 pyyaml = "^6.0.1"
 prettytable = "^3.9.0"
+pyvis = "^0.3.2"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.8.0"

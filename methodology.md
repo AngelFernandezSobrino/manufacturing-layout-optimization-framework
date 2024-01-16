@@ -20,45 +20,6 @@ Transformations: transformations are the changes that are made to one or several
 
 Transport: transportation is the movement of parts from one storage to another
 
-Origin - Station:
-  Storage:
-    - Part1
-    - Part2
-
-Destination - Station:
-  Storage:
-    - Part3
-
-PartsStorage - Station:
-  Storage:
-    - Part1
-    - Part1
-    - Part1
-    - Part2
-    - Part2
-    - Part2
-    - Part3
-    - Part3
-    - Part3
-
-Robot1 - Station:
-  Transport:
-    - Part1
-    - Part2
-    - Part3
-
-Robot2 - Station:
-  Transport:
-    - Part1
-    - Part2
-    - Part3
-
-Press - Station:
-  Activity1:
-    Storage:
-      - Part1
-      - Part2
-      - Part3
 
 
 Also, we need to model transportations between stations
@@ -74,6 +35,23 @@ So, each storage place position has to be defined.
 The position of the robot is importante for the real time spent in the transformation, but we could consider an approximation. An option would be to consider a ratio of the distance between the robot and the storage places. It would be a "robot position factor", artificially helping to make distributions with the robot more close to the storage places more efficient.
 
 So, considerin the stations models above, we need to define the storage places positions.
+
+
+Concepts such as robot singularity or stiffness won't be considered to reduce the problem complexity.
+
+# Important stuff
+
+Our objective is to build the characteristics and boundary conditions of a flexible manufacturing system automaticaly, to the be able to apply any or some optimization algorithms to find the optimum value of the variables.
+
+The difficulty in these processes is that the problem has to be transformced in a way that it can be optimized with well-known techniques. The objective of this works is to build a modeling framework in a way that it can be used easily for problem description, and it could also be transformed to a contrained optimization algorithm.
+
+The main problem is, based on a 2D layout, we need to define a set of constrains based on the process requirements and stations characteristics, that ensure that the process task can be completed. 
+
+We need to obtain a representation of something like:
+
+The press requires that the parts used by it can be reached by a robot. At the same time, this robot has to be able to put this parts in the InOut station. It could also place the parts in a storage station, but then, simultaneously, that storage location requires a transport robot in scope, and it has to be able to reach the InOut station. Or again, another storge location with the same characterisctics, recursively.
+
+
 
 
 Stations size:
@@ -107,16 +85,22 @@ PartsStorage:
       Place:
         X: 0.3
         Y: 0.3
+      Input: 1
+      Output: 1
     - Type:
       - Part2
       Place:
         X: -0.3
         Y: 0.3
+      Input: 1
+      Output: 1
     - Type:
       - Part3
       Place:
         X: 0.3
         Y: -0.3
+      Input: 1
+      Output: 1
 
 Robot1:
   Transport:
