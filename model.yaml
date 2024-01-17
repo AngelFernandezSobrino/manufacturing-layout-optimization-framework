@@ -12,7 +12,8 @@ Stations:
             Y: 0.3
           Add: 0
           Remove: 1
-        - Type: Part2
+        - Type:
+          - Part2
           Place:
             X: -0.3
             Y: 0.3
@@ -50,22 +51,13 @@ Stations:
           Add: 1
           Remove: 1
 
-    Robot1:
+    Robot:
       Transport:
         Range: 1.4
         Parts:
           - Part1
           - Part2
           - Part3
-
-    Robot2:
-      Transport:
-        Range: 1.4
-        Parts:
-          - Part1
-          - Part2
-          - Part3
-
 
     Press:
       Storage:
