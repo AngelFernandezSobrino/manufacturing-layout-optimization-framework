@@ -12,10 +12,20 @@ pyyaml = "^6.0.1"
 prettytable = "^3.9.0"
 pyvis = "^0.3.2"
 
+[tool.black]
+line-length = 88
+
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.8.0"
 types-pyyaml = "^6.0.12.12"
+black = "^23.12.1"
+pylint = "^3.0.3"
+poethepoet = "^0.24.4"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poe.tasks]
+graph = "python graph.py"
+main = "python main.py"
