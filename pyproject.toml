@@ -21,6 +21,7 @@ types-pyyaml = "^6.0.12.12"
 black = "^23.12.1"
 pylint = "^3.0.3"
 poethepoet = "^0.24.4"
+ipykernel = "^6.29.0"
 
 [build-system]
 requires = ["poetry-core"]
