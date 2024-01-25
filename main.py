@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import sqrt
 import random
 from typing import Dict, List
-
+from datetime_string import now_string
 
 import model
 
