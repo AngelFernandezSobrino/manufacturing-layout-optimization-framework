@@ -64,18 +64,14 @@ system_model: dict = {}
 
 
 def get_system_model() -> Dict[str, Any]:
-    print("get_system_model")
     if len(system_model) < 1:
-        print("read_model_from_source")
         read_model_from_source()
 
     return copy.deepcopy(system_model)
 
 
 def get_stations_model() -> Dict[str, StationModel]:
-    print("get_stations_model")
     if len(station_models) < 1:
-        print("read_model_from_source")
         read_model_from_source()
 
     return copy.deepcopy(station_models)
