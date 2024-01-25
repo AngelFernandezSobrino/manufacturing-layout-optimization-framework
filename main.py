@@ -334,8 +334,8 @@ graph_viewer.barnes_hut(
     gravity=0, central_gravity=0.3, spring_length=100, damping=0.09, overlap=0.1
 )
 # graph_viewer.set_edge_smooth('dynamic')
-graph_viewer.save_graph("output/tree.html")
-
+graph_viewer.save_graph(f"output/history/{now_string}_tree.html")
+graph_viewer.save_graph(f"output/last_tree.html")
 
 # Now we have the tree of configurations, we need to check if the configuration is valid or not
 # To do that, we need to check if part1 and part2 can reach Press station from InOut station and that part3 can reach InOut station from Press station
@@ -573,7 +573,10 @@ graph_viewer_2.from_nx(graph_generator_2)
 graph_viewer_2.barnes_hut(
     gravity=0, central_gravity=0.3, spring_length=100, damping=0.09, overlap=0.1
 )
-graph_viewer_2.save_graph("output/tree_filtered.html")
+
+
+graph_viewer_2.save_graph(f"output/last_tree_filtered.html")
+graph_viewer_2.save_graph(f"output/history/{now_string}_tree_filtered.html")
 
 # Now we need to check each configuration to evaluate the cost of the configuration
 

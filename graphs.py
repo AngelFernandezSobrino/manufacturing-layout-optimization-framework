@@ -5,6 +5,8 @@ import prettytable
 import pyvis as vis  # type: ignore
 import networkx as nx  # type: ignore
 
+from datetime_string import now_string
+
 import model
 import refactor_graph
 
@@ -144,7 +146,8 @@ graph_viewer.barnes_hut(
     overlap=0.1,
 )
 # graph_viewer.set_edge_smooth('dynamic')
-graph_viewer.save_graph("output/graph.html")
+graph_viewer.save_graph(f"output/last_graph.html")
+graph_viewer.save_graph(f"output/history/{now_string}_graph.html")
 
 
 # El siguiente paso seria modelar los tiempos de transporte entre las estaciones en funcion de la distancia entre ellas
@@ -249,7 +252,8 @@ graph_viewer.barnes_hut(
     overlap=0.1,
 )
 # graph_viewer.set_edge_smooth('dynamic')
-graph_viewer.save_graph("output/graph_v2.html")
+graph_viewer.save_graph(f"output/last_graph_v2.html")
+graph_viewer.save_graph(f"output/history/{now_string}_graph_v2.html")
 
 
 # The time of transport between the stations is going to be stimated with the distance between them, the mean speed of the transport stations and the distance between the transport stations and the storage stations
