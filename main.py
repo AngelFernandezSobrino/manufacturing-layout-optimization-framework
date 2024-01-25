@@ -1,9 +1,17 @@
 # import library to read a yaml file
 
-from dataclasses import dataclass
-from math import sqrt
 import random
 from typing import Dict, List
+from main_helper import (
+    Position,
+    Node,
+    add_nodes,
+    check_configuration,
+    create_plant_from_node,
+    create_plant_from_node_with_station_models_used,
+    get_robot_position,
+)
+
 from datetime_string import now_string
 
 import model
@@ -21,24 +29,6 @@ plant_grid[0][2] = station_models.pop("InOut")
 # The next step is to place one of the remaining stations in the grid, in a position that has to be nearby some of the previous stations<F
 
 # First of all, we need to know the possible positions for the station. For we iterate over the grid and check if the position is empty and if the some position nearby is not empty
-
-
-@dataclass
-class Position:
-    x: int
-    y: int
-
-    def __str__(self) -> str:
-        return f"({self.x}, {self.y})"
-
-    def __sub__(self, __value):
-        return Position(self.x - __value.x, self.y - __value.y)
-
-    def distance(self) -> float:
-        return sqrt(self.x**2 + self.y**2)
-
-    def dot_product(self, __value) -> float:
-        return self.x * __value.x + self.y * __value.y
 
 
 while len(station_models) > 0:
@@ -143,125 +133,38 @@ def test(plant_grid: model.PlantGridType) -> tuple[List[Position], List[List[int
 # To create all the different configurations we are going to build a tree of configurations.
 # Starting from the initial conditions, with the InOut station on the top-middle position.
 
-stationModels_2 = model.get_stations_model()
+station_models = model.get_stations_model()
 
 
-class Node:
-    def __init__(self, station: model.StationModel, position: Position) -> None:
-        self.station: model.StationModel = station
-        self.position: Position = position
+def populate_next_nodes(node: Node, remaining_stations: int):
+    if remaining_stations <= 0:
+        return
 
-    def __str__(self) -> str:
-        return f"{self.station} {self.position}"
+    global station_models
 
-
-first_level: Node = Node(stationModels_2.pop("InOut"), Position(2, 0))
-
-plant_grid = [[None for x in range(5)] for y in range(5)]
-
-plant_grid[first_level.position.y][first_level.position.x] = first_level.station
-
-second_level: List[Node] = []
-
-available_positions_array, available_positions_grid = test(plant_grid)
-
-for position in available_positions_array:
-    for value in stationModels_2.values():
-        second_level.append(Node(value, position))
-
-
-third_level: List[List[Node]] = []
-
-for perIndex, permutation in enumerate(second_level):
-    third_level.append([])
-
-    stationModels_3 = model.get_stations_model()
-
-    plant_grid = [[None for x in range(5)] for y in range(5)]
-
-    plant_grid[first_level.position.y][first_level.position.x] = first_level.station
-
-    stationModels_3.pop(first_level.station.name)
-
-    plant_grid[permutation.position.y][permutation.position.x] = permutation.station
-    stationModels_3.pop(permutation.station.name)
-
+    plant_grid, station_models_used = create_plant_from_node_with_station_models_used(
+        node
+    )
     available_positions_array, available_positions_grid = test(plant_grid)
 
     for position in available_positions_array:
-        for value in stationModels_3.values():
-            third_level[perIndex].append(Node(value, position))
+        for value in station_models.values():
+            if value.name in station_models_used:
+                continue
 
-fourth_level: List[List[List[Node]]] = []
+            new_node = Node(value, position, node)
 
-for perIndex, permutation in enumerate(second_level):
-    fourth_level.append([])
-    for perIndex2, permutation2 in enumerate(third_level[perIndex]):
-        fourth_level[perIndex].append([])
+            if node.next_nodes is None:
+                node.next_nodes = []
 
-        stationModels_4 = model.get_stations_model()
+            node.next_nodes.append(new_node)
 
-        plant_grid = [[None for x in range(5)] for y in range(5)]
+            populate_next_nodes(new_node, remaining_stations - 1)
 
-        plant_grid[first_level.position.y][first_level.position.x] = first_level.station
 
-        stationModels_4.pop(first_level.station.name)
+first_node = Node(station_models["InOut"], Position(2, 0), None)
 
-        plant_grid[permutation.position.y][permutation.position.x] = permutation.station
-        stationModels_4.pop(permutation.station.name)
-
-        plant_grid[permutation2.position.y][
-            permutation2.position.x
-        ] = permutation2.station
-        stationModels_4.pop(permutation2.station.name)
-
-        available_positions_array, available_positions_grid = test(plant_grid)
-
-        for position in available_positions_array:
-            for value in stationModels_4.values():
-                fourth_level[perIndex][perIndex2].append(Node(value, position))
-
-fifth_level: List[List[List[List[Node]]]] = []
-
-for perIndex, permutation in enumerate(second_level):
-    fifth_level.append([])
-    for perIndex2, permutation2 in enumerate(third_level[perIndex]):
-        fifth_level[perIndex].append([])
-        for perIndex3, permutation3 in enumerate(fourth_level[perIndex][perIndex2]):
-            fifth_level[perIndex][perIndex2].append([])
-
-            stationModels_5 = model.get_stations_model()
-
-            plant_grid = [[None for x in range(5)] for y in range(5)]
-
-            plant_grid[first_level.position.y][
-                first_level.position.x
-            ] = first_level.station
-
-            stationModels_5.pop(first_level.station.name)
-
-            plant_grid[permutation.position.y][
-                permutation.position.x
-            ] = permutation.station
-            stationModels_5.pop(permutation.station.name)
-
-            plant_grid[permutation2.position.y][
-                permutation2.position.x
-            ] = permutation2.station
-            stationModels_5.pop(permutation2.station.name)
-
-            plant_grid[permutation3.position.y][
-                permutation3.position.x
-            ] = permutation3.station
-            stationModels_5.pop(permutation3.station.name)
-
-            available_positions_array, available_positions_grid = test(plant_grid)
-
-            for position in available_positions_array:
-                for value in stationModels_5.values():
-                    fifth_level[perIndex][perIndex2][perIndex3].append(
-                        Node(value, position)
-                    )
+populate_next_nodes(first_node, len(station_models) - 1)
 
 
 def fn1(number: int, length) -> int:
@@ -274,59 +177,18 @@ import networkx as nx  # type: ignore
 graph_viewer = vis.network.Network(height="1000px")
 graph_generator = nx.Graph()
 
+
 graph_generator.add_node(
-    first_level.station.name + str(first_level.position),
-    label=(first_level.station.name + str(first_level.position)),
+    id(first_node),
+    label=(first_node.station.name + str(first_node.position)),
     physics=False,
     x=0,
     y=0,
 )
 
-for index2, node in enumerate(second_level):
-    x = fn1(index2, len(second_level)) * 120
-    graph_generator.add_node(
-        f"2:{index2}:{node.station.name}:{node.position}",
-        label=f"2:{index2}:{node.station.name}:{node.position}",
-        physics=False,
-        x=x,
-        y=60,
-    )
-    graph_generator.add_edge(
-        first_level.station.name + str(first_level.position),
-        f"2:{index2}:{node.station.name}:{node.position}",
-    )
-
-for index2, nodes in enumerate(third_level):
-    for index3, node in enumerate(nodes):
-        x = fn1(index3, len(nodes)) * 120 - 800 + 250 * index2
-        graph_generator.add_node(
-            f"3:{index2}:{index3}:{node.station.name}:{node.position}",
-            label=f"3:{index2}:{index3}:{node.station.name}:{node.position}",
-            physics=False,
-            x=x,
-            y=120 + 60 * index2,
-        )
-        graph_generator.add_edge(
-            f"2:{index2}:{second_level[index2].station.name}:{second_level[index2].position}",
-            f"3:{index2}:{index3}:{node.station.name}:{node.position}",
-        )
-
-for index2, nodes1 in enumerate(fourth_level):
-    for index3, nodes in enumerate(nodes1):
-        for index4, node in enumerate(nodes):
-            x = fn1(index4, len(nodes)) * 120 - 800 + 250 * index3 - 2000 + 500 * index2
-            graph_generator.add_node(
-                f"4:{index2}:{index3}:{index4}:{node.station.name}:{node.position}",
-                label=f"4:{index2}:{index3}:{index4}:{node.station.name}:{node.position}",
-                physics=False,
-                x=x,
-                y=120 + 60 * index2 + 400 + 60 * index3,
-            )
-            graph_generator.add_edge(
-                f"3:{index2}:{index3}:{third_level[index2][index3].station.name}:{third_level[index2][index3].position}",
-                f"4:{index2}:{index3}:{index4}:{node.station.name}:{node.position}",
-            )
-
+add_nodes(
+    graph_generator=graph_generator, previous_node=first_node, level=1, initial_x=0
+)
 
 # graph_viewer.toggle_physics(False)
 graph_viewer.from_nx(graph_generator)
@@ -351,161 +213,32 @@ graph_viewer.save_graph(f"output/last_tree.html")
 stationModelsOriginal = model.get_stations_model()
 
 
-def get_robot_position(plant_grid: model.PlantGridType) -> Position:
-    for y in range(5):
-        for x in range(5):
-            if plant_grid[y][x] == stationModelsOriginal["Robot"]:
-                return Position(x, y)
-
-    raise Exception("Robot not found")
-
-
 # Now we have the position of the robot, we can check if the Press station and the InOut station are in the neighborhood of the robot
 
 
-def check_configuration(plant_grid: model.PlantGridType) -> bool:
-    robot_position = get_robot_position(plant_grid)
+def check_configuration_each_leave(node: Node):
+    if node.next_nodes is None:
+        plant_grid = create_plant_from_node(node)
 
-    if (
-        (
-            robot_position.x > 0
-            and plant_grid[robot_position.y][robot_position.x - 1]
-            == stationModelsOriginal["Press"]
-        )
-        or (
-            robot_position.x < 4
-            and plant_grid[robot_position.y][robot_position.x + 1]
-            == stationModelsOriginal["Press"]
-        )
-        or (
-            robot_position.y > 0
-            and plant_grid[robot_position.y - 1][robot_position.x]
-            == stationModelsOriginal["Press"]
-        )
-        or (
-            robot_position.y < 4
-            and plant_grid[robot_position.y + 1][robot_position.x]
-            == stationModelsOriginal["Press"]
-            or (
-                robot_position.x > 0
-                and robot_position.y > 0
-                and plant_grid[robot_position.y - 1][robot_position.x - 1]
-                == stationModelsOriginal["Press"]
-            )
-            or (
-                robot_position.x < 4
-                and robot_position.y > 0
-                and plant_grid[robot_position.y - 1][robot_position.x + 1]
-                == stationModelsOriginal["Press"]
-            )
-            or (
-                robot_position.x > 0
-                and robot_position.y < 4
-                and plant_grid[robot_position.y + 1][robot_position.x - 1]
-                == stationModelsOriginal["Press"]
-            )
-            or (
-                robot_position.x < 4
-                and robot_position.y < 4
-                and plant_grid[robot_position.y + 1][robot_position.x + 1]
-                == stationModelsOriginal["Press"]
-            )
-        )
-    ):
-        if (
-            (
-                robot_position.x > 0
-                and plant_grid[robot_position.y][robot_position.x - 1]
-                == stationModelsOriginal["InOut"]
-            )
-            or (
-                robot_position.x < 4
-                and plant_grid[robot_position.y][robot_position.x + 1]
-                == stationModelsOriginal["InOut"]
-            )
-            or (
-                robot_position.y > 0
-                and plant_grid[robot_position.y - 1][robot_position.x]
-                == stationModelsOriginal["InOut"]
-            )
-            or (
-                robot_position.y < 4
-                and plant_grid[robot_position.y + 1][robot_position.x]
-                == stationModelsOriginal["InOut"]
-                or (
-                    robot_position.x > 0
-                    and robot_position.y > 0
-                    and plant_grid[robot_position.y - 1][robot_position.x - 1]
-                    == stationModelsOriginal["InOut"]
-                )
-                or (
-                    robot_position.x < 4
-                    and robot_position.y > 0
-                    and plant_grid[robot_position.y - 1][robot_position.x + 1]
-                    == stationModelsOriginal["InOut"]
-                )
-                or (
-                    robot_position.x > 0
-                    and robot_position.y < 4
-                    and plant_grid[robot_position.y + 1][robot_position.x - 1]
-                    == stationModelsOriginal["InOut"]
-                )
-                or (
-                    robot_position.x < 4
-                    and robot_position.y < 4
-                    and plant_grid[robot_position.y + 1][robot_position.x + 1]
-                    == stationModelsOriginal["InOut"]
-                )
-            )
-        ):
+        if check_configuration(plant_grid):
+            print("Configuration valid")
             return True
         else:
+            print("Configuration not valid")
             return False
-    else:
-        return False
+
+    at_least_one_valid = False
+
+    for index, next_node in enumerate(node.next_nodes):
+        if check_configuration_each_leave(next_node):
+            at_least_one_valid = True
+        else:
+            del node.next_nodes[index]
+
+    return at_least_one_valid
 
 
-# Now we have the function to check if a configuration is valid or not, we can check all the configurations
-
-for perIndex, permutation in enumerate(second_level):
-    for perIndex2, permutation2 in enumerate(third_level[perIndex]):
-        for perIndex3, permutation3 in enumerate(fourth_level[perIndex][perIndex2]):
-            stationModels_5 = model.get_stations_model()
-
-            plant_grid = [[None for x in range(5)] for y in range(5)]
-
-            plant_grid[first_level.position.y][
-                first_level.position.x
-            ] = first_level.station
-
-            stationModels_5.pop(first_level.station.name)
-
-            plant_grid[permutation.position.y][
-                permutation.position.x
-            ] = permutation.station
-            stationModels_5.pop(permutation.station.name)
-
-            plant_grid[permutation2.position.y][
-                permutation2.position.x
-            ] = permutation2.station
-            stationModels_5.pop(permutation2.station.name)
-
-            plant_grid[permutation3.position.y][
-                permutation3.position.x
-            ] = permutation3.station
-            stationModels_5.pop(permutation3.station.name)
-
-            if check_configuration(plant_grid):
-                print("Configuration valid")
-            else:
-                print("Configuration not valid")
-                # Delete the configuration
-                del fourth_level[perIndex][perIndex2][perIndex3]
-
-        if len(fourth_level[perIndex][perIndex2]) == 0:
-            del third_level[perIndex][perIndex2]
-    if len(third_level[perIndex]) == 0:
-        del second_level[perIndex]
+check_configuration_each_leave(first_node)
 
 print("Configurations checked")
 
@@ -516,58 +249,14 @@ graph_viewer_2 = vis.network.Network(height="1000px")
 graph_generator_2 = nx.Graph()
 
 graph_generator_2.add_node(
-    first_level.station.name + str(first_level.position),
-    label=(first_level.station.name + str(first_level.position)),
+    id(first_node),
+    label=(first_node.station.name + str(first_node.position)),
     physics=False,
     x=0,
     y=0,
 )
 
-for index2, node in enumerate(second_level):
-    x = fn1(index2, len(second_level)) * 120
-    graph_generator_2.add_node(
-        f"2:{index2}:{node.station.name}:{node.position}",
-        label=f"2:{index2}:{node.station.name}:{node.position}",
-        physics=False,
-        x=x,
-        y=60,
-    )
-    graph_generator_2.add_edge(
-        first_level.station.name + str(first_level.position),
-        f"2:{index2}:{node.station.name}:{node.position}",
-    )
-
-for index2, nodes in enumerate(third_level):
-    for index3, node in enumerate(nodes):
-        x = fn1(index3, len(nodes)) * 120 - 800 + 250 * index2
-        graph_generator_2.add_node(
-            f"3:{index2}:{index3}:{node.station.name}:{node.position}",
-            label=f"3:{index2}:{index3}:{node.station.name}:{node.position}",
-            physics=False,
-            x=x,
-            y=120 + 60 * index2,
-        )
-        graph_generator_2.add_edge(
-            f"2:{index2}:{second_level[index2].station.name}:{second_level[index2].position}",
-            f"3:{index2}:{index3}:{node.station.name}:{node.position}",
-        )
-
-for index2, nodes1 in enumerate(fourth_level):
-    for index3, nodes in enumerate(nodes1):
-        for index4, node in enumerate(nodes):
-            x = fn1(index4, len(nodes)) * 120 - 800 + 250 * index3 - 2000 + 500 * index2
-            graph_generator_2.add_node(
-                f"4:{index2}:{index3}:{index4}:{node.station.name}:{node.position}",
-                label=f"4:{index2}:{index3}:{index4}:{node.station.name}:{node.position}",
-                physics=False,
-                x=x,
-                y=120 + 60 * index2 + 400 + 60 * index3,
-            )
-            graph_generator_2.add_edge(
-                f"3:{index2}:{index3}:{third_level[index2][index3].station.name}:{third_level[index2][index3].position}",
-                f"4:{index2}:{index3}:{index4}:{node.station.name}:{node.position}",
-            )
-
+add_nodes(graph_generator_2, first_node, 1, 0)
 
 graph_viewer_2.from_nx(graph_generator_2)
 graph_viewer_2.barnes_hut(
@@ -600,10 +289,6 @@ import graphs
 # important variations in the parts input ratio can be specially problematic.
 
 # Considering each edge in graph.nodes_v2, we are going to iterate through all the configurations and calculate the performance ratio for each configuration
-
-best_performance_ratio: float = 9999999999.0
-
-best_performance_indexes = []
 
 
 def evaluate_robot_penalties(robot: Position, origin: Position, destiny: Position):
@@ -660,96 +345,38 @@ def check_performace(plant_grid: model.PlantGridType) -> float:
     return result
 
 
-for perIndex, permutation in enumerate(second_level):
-    for perIndex2, permutation2 in enumerate(third_level[perIndex]):
-        for perIndex3, permutation3 in enumerate(fourth_level[perIndex][perIndex2]):
-            stationModels_5 = model.get_stations_model()
+best_performance_ratio: float = 9999999999.0
+best_performance_node: Node | None = None
 
-            plant_grid = [[None for x in range(5)] for y in range(5)]
 
-            plant_grid[first_level.position.y][
-                first_level.position.x
-            ] = first_level.station
+def check_performance_each_leave(node: Node):
+    if node.next_nodes is None:
+        plant_grid = create_plant_from_node(node)
 
-            stationModels_5.pop(first_level.station.name)
+        plant_performace = check_performace(plant_grid)
 
-            plant_grid[permutation.position.y][
-                permutation.position.x
-            ] = permutation.station
-            stationModels_5.pop(permutation.station.name)
+        global best_performance_ratio
+        global best_performance_node
 
-            plant_grid[permutation2.position.y][
-                permutation2.position.x
-            ] = permutation2.station
-            stationModels_5.pop(permutation2.station.name)
+        if plant_performace < best_performance_ratio:
+            best_performance_ratio = plant_performace
+            best_performance_node = node
 
-            plant_grid[permutation3.position.y][
-                permutation3.position.x
-            ] = permutation3.station
-            stationModels_5.pop(permutation3.station.name)
+        return
 
-            plant_performace = check_performace(plant_grid)
+    for next_node in node.next_nodes:
+        check_performance_each_leave(next_node)
 
-            if plant_performace < best_performance_ratio:
-                best_performance_ratio = plant_performace
-                best_performance_indexes = [perIndex, perIndex2, perIndex3]
 
-        if len(fourth_level[perIndex][perIndex2]) == 0:
-            del third_level[perIndex][perIndex2]
-    if len(third_level[perIndex]) == 0:
-        del second_level[perIndex]
+check_performance_each_leave(first_node)
 
 print("Performance checked")
 print("Best performance ratio: " + str(best_performance_ratio))
-print("Best performance indexes: " + str(best_performance_indexes))
+print("Best performance node: " + str(best_performance_node))
 
-stationModels_5 = model.get_stations_model()
+if best_performance_node:
+    plant_grid = create_plant_from_node(best_performance_node)
 
-plant_grid = [[None for x in range(5)] for y in range(5)]
+    # Print that configuration
 
-plant_grid[first_level.position.y][first_level.position.x] = first_level.station
-
-stationModels_5.pop(first_level.station.name)
-
-plant_grid[second_level[best_performance_indexes[0]].position.y][
-    second_level[best_performance_indexes[0]].position.x
-] = second_level[best_performance_indexes[0]].station
-stationModels_5.pop(second_level[best_performance_indexes[0]].station.name)
-
-plant_grid[
-    third_level[best_performance_indexes[0]][best_performance_indexes[1]].position.y
-][
-    third_level[best_performance_indexes[0]][best_performance_indexes[1]].position.x
-] = third_level[
-    best_performance_indexes[0]
-][
-    best_performance_indexes[1]
-].station
-stationModels_5.pop(
-    third_level[best_performance_indexes[0]][best_performance_indexes[1]].station.name
-)
-
-plant_grid[
-    fourth_level[best_performance_indexes[0]][best_performance_indexes[1]][
-        best_performance_indexes[2]
-    ].position.y
-][
-    fourth_level[best_performance_indexes[0]][best_performance_indexes[1]][
-        best_performance_indexes[2]
-    ].position.x
-] = fourth_level[
-    best_performance_indexes[0]
-][
-    best_performance_indexes[1]
-][
-    best_performance_indexes[2]
-].station
-stationModels_5.pop(
-    fourth_level[best_performance_indexes[0]][best_performance_indexes[1]][
-        best_performance_indexes[2]
-    ].station.name
-)
-
-# Print that configuration
-
-model.print_table(plant_grid)
+    model.print_table(plant_grid)
