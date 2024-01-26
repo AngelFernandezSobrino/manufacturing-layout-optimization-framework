@@ -7,9 +7,11 @@ from main_helper import (
     Node,
     add_nodes,
     check_configuration,
+    check_performace,
     create_plant_from_node,
     create_plant_from_node_with_station_models_used,
     get_robot_position,
+    get_available_positions,
 )
 
 from datetime_string import now_string
@@ -104,32 +106,6 @@ while len(station_models) > 0:
 
 print("Configuration obtained")
 
-
-def test(plant_grid: model.PlantGridType) -> tuple[List[Position], List[List[int]]]:
-    available_positions_array: List[Position] = []
-    available_positions_grid: List[List[int]] = [
-        [0 for x in range(5)] for y in range(5)
-    ]
-
-    for y in range(1, 5):
-        for x in range(5):
-            if plant_grid[y][x] is None:
-                if (
-                    (plant_grid[y - 1][x] is not None)
-                    or (x > 0 and plant_grid[y][x - 1] is not None)
-                    or (x < 4 and plant_grid[y][x + 1] is not None)
-                    or (y < 4 and plant_grid[y + 1][x] is not None)
-                    or (x > 0 and plant_grid[y - 1][x - 1] is not None)
-                    or (x < 4 and plant_grid[y - 1][x + 1] is not None)
-                    or (y < 4 and x > 0 and plant_grid[y + 1][x - 1] is not None)
-                    or (y < 4 and x < 4 and plant_grid[y + 1][x + 1] is not None)
-                ):
-                    available_positions_grid[y][x] = 1
-                    available_positions_array.append(Position(x, y))
-
-    return available_positions_array, available_positions_grid
-
-
 # To create all the different configurations we are going to build a tree of configurations.
 # Starting from the initial conditions, with the InOut station on the top-middle position.
 
@@ -145,7 +121,9 @@ def populate_next_nodes(node: Node, remaining_stations: int):
     plant_grid, station_models_used = create_plant_from_node_with_station_models_used(
         node
     )
-    available_positions_array, available_positions_grid = test(plant_grid)
+    available_positions_array, available_positions_grid = get_available_positions(
+        plant_grid
+    )
 
     for position in available_positions_array:
         for value in station_models.values():
@@ -272,7 +250,6 @@ graph_viewer_2.save_graph(f"output/history/{now_string}_tree_filtered.html")
 # This function will be able to get a permorfance ratio for a given configuration. Thats the bigges problem actualy.
 # We will start with a simpler, easier to calculate, performance ratio. That would be improve in the future.
 
-import graphs
 
 # graphs.nodes_v2 is a graph that contains all the storage nodes and the parts that can be transfered between them
 # Now we have to evaluate each part transfer, looking for the lenght of the path and how much far away is the robot from the nodes
@@ -289,60 +266,6 @@ import graphs
 # important variations in the parts input ratio can be specially problematic.
 
 # Considering each edge in graph.nodes_v2, we are going to iterate through all the configurations and calculate the performance ratio for each configuration
-
-
-def evaluate_robot_penalties(robot: Position, origin: Position, destiny: Position):
-    robot_to_origin = robot - origin
-    robot_to_destiny = robot - destiny
-    origin_to_destiny = origin - destiny
-
-    return (
-        abs(robot_to_origin.dot_product(robot_to_destiny))
-        / origin_to_destiny.distance()
-    )
-
-
-def check_performace(plant_grid: model.PlantGridType) -> float:
-    robot_position: Position = get_robot_position(plant_grid)
-
-    node_positions: Dict[node.name, Position] = {}
-
-    result = 0
-
-    for node in graphs.nodes_v2:
-        for colIndex, column in enumerate(plant_grid):
-            for rowIndex, station in enumerate(iterable=column):
-                if station is None:
-                    continue
-                if station.name == node.station.name:
-                    node_positions[node.station.name] = Position(colIndex, rowIndex)
-
-    for node in graphs.nodes_v2:
-        for edge in node.outgoing_edges:
-            stations_distance = (
-                node_positions[edge.destination.station.name]
-                - node_positions[node.station.name]
-            ).distance()
-            robot_distance_origin = (
-                robot_position - node_positions[node.station.name]
-            ).distance()
-            robot_distance_destiny = (
-                robot_position - node_positions[edge.destination.station.name]
-            ).distance()
-            position_penalty = evaluate_robot_penalties(
-                robot_position,
-                node_positions[node.station.name],
-                node_positions[edge.destination.station.name],
-            )
-
-            result += (
-                stations_distance
-                + robot_distance_origin / 4
-                + robot_distance_destiny / 4
-                + position_penalty
-            )
-
-    return result
 
 
 best_performance_ratio: float = 9999999999.0

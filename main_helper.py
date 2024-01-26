@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from math import sqrt
-from typing import List, Set
+from typing import Dict, List, Set
 
 from networkx import Graph  # type: ignore
 import model
@@ -72,6 +72,33 @@ def create_plant_from_node_with_station_models_used(node: Node):
         node_evaluated = node_evaluated.previous_node
 
     return plant_grid, station_models_used
+
+
+def get_available_positions(
+    plant_grid: model.PlantGridType,
+) -> tuple[List[Position], List[List[int]]]:
+    available_positions_array: List[Position] = []
+    available_positions_grid: List[List[int]] = [
+        [0 for x in range(5)] for y in range(5)
+    ]
+
+    for y in range(1, 5):
+        for x in range(5):
+            if plant_grid[y][x] is None:
+                if (
+                    (plant_grid[y - 1][x] is not None)
+                    or (x > 0 and plant_grid[y][x - 1] is not None)
+                    or (x < 4 and plant_grid[y][x + 1] is not None)
+                    or (y < 4 and plant_grid[y + 1][x] is not None)
+                    or (x > 0 and plant_grid[y - 1][x - 1] is not None)
+                    or (x < 4 and plant_grid[y - 1][x + 1] is not None)
+                    or (y < 4 and x > 0 and plant_grid[y + 1][x - 1] is not None)
+                    or (y < 4 and x < 4 and plant_grid[y + 1][x + 1] is not None)
+                ):
+                    available_positions_grid[y][x] = 1
+                    available_positions_array.append(Position(x, y))
+
+    return available_positions_array, available_positions_grid
 
 
 def add_nodes(graph_generator: Graph, previous_node: Node, level: int, initial_x: int):
@@ -213,3 +240,60 @@ def check_configuration(plant_grid: model.PlantGridType) -> bool:
 
 
 # Now we have the function to check if a configuration is valid or not, we can check all the configurations
+
+
+def evaluate_robot_penalties(robot: Position, origin: Position, destiny: Position):
+    robot_to_origin = robot - origin
+    robot_to_destiny = robot - destiny
+    origin_to_destiny = origin - destiny
+
+    return (
+        abs(robot_to_origin.dot_product(robot_to_destiny))
+        / origin_to_destiny.distance()
+    )
+
+
+import graphs
+
+
+def check_performace(plant_grid: model.PlantGridType) -> float:
+    robot_position: Position = get_robot_position(plant_grid)
+
+    node_positions: Dict[node.name, Position] = {}
+
+    result = 0
+
+    for node in graphs.nodes_v2:
+        for colIndex, column in enumerate(plant_grid):
+            for rowIndex, station in enumerate(iterable=column):
+                if station is None:
+                    continue
+                if station.name == node.station.name:
+                    node_positions[node.station.name] = Position(colIndex, rowIndex)
+
+    for node in graphs.nodes_v2:
+        for edge in node.outgoing_edges:
+            stations_distance = (
+                node_positions[edge.destination.station.name]
+                - node_positions[node.station.name]
+            ).distance()
+            robot_distance_origin = (
+                robot_position - node_positions[node.station.name]
+            ).distance()
+            robot_distance_destiny = (
+                robot_position - node_positions[edge.destination.station.name]
+            ).distance()
+            position_penalty = evaluate_robot_penalties(
+                robot_position,
+                node_positions[node.station.name],
+                node_positions[edge.destination.station.name],
+            )
+
+            result += (
+                stations_distance
+                + robot_distance_origin / 4
+                + robot_distance_destiny / 4
+                + position_penalty
+            )
+
+    return result
