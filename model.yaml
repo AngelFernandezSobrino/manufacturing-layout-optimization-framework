@@ -51,7 +51,15 @@ Stations:
           Add: 1
           Remove: 1
 
-    Robot:
+    Robot1:
+      Transport:
+        Range: 1.4
+        Parts:
+          - Part1
+          - Part2
+          - Part3
+
+    Robot2:
       Transport:
         Range: 1.4
         Parts:
