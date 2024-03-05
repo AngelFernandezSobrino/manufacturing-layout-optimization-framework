@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # import library to read a yaml file
 import copy
+from io import StringIO
 from pathlib import Path
 from types import MappingProxyType
 from typing import Dict
@@ -20,19 +21,27 @@ from . import (
 
 class SystemSpecification:
 
-    def __init__(self, model_path: Path) -> None:
+    def __init__(self) -> None:
 
-        self.path = model_path
+        self.model: ModelSpecification = None
 
-        self.model: ModelSpecification = read_model_from_source(self.path)
+    def read_model_from_string(self, model_string: str) -> ModelSpecification:
+        # Read the model from the string
 
+        if self.model is None:
+            yaml_parsed: ModelSpecificationDict = yaml.full_load(StringIO(model_string))
+            self.model: ModelSpecification = ModelSpecification(yaml_parsed)
 
-def read_model_from_source(model_path: Path) -> ModelSpecification:
-    # Read the model from the yaml file
-    model_file = open(model_path, "r")
-    yaml_parsed: ModelSpecificationDict = yaml.full_load(model_file)
+        return self.model
 
-    return ModelSpecification(yaml_parsed)
+    def read_model_from_source(self, model_path: Path) -> ModelSpecification:
+        # Read the model from the yaml file
+        if self.model is None:
+            model_file = open(model_path, "r")
+            yaml_parsed: ModelSpecificationDict = yaml.full_load(model_file)
+            self.model: ModelSpecification = ModelSpecification(yaml_parsed)
+
+        return self.model
 
 
 def get_void_plant_grid() -> PlantGridType:
