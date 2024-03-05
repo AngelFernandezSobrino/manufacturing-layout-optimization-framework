@@ -144,3 +144,81 @@ Press:
       Returns:
         - Part3
       TimeSpend: 3.0
+
+
+example configuration code:
+
+```python
+while len(station_models) > 0:
+    available_positions_array: List[Vector] = []
+    available_positions_grid: List[List[int]] = [
+        [0 for x in range(5)] for y in range(5)
+    ]
+
+    for position in available_positions_array:
+        available_positions_grid[position.y][position.x] = 1
+
+    for y in range(1, 5):
+        for x in range(5):
+            if plant_grid[y][x] is None:
+                if (
+                    (plant_grid[y - 1][x] is not None)
+                    or (x > 0 and plant_grid[y][x - 1] is not None)
+                    or (x < 4 and plant_grid[y][x + 1] is not None)
+                    or (y < 4 and plant_grid[y + 1][x] is not None)
+                    or (x > 0 and plant_grid[y - 1][x - 1] is not None)
+                    or (x < 4 and plant_grid[y - 1][x + 1] is not None)
+                    or (y < 4 and x > 0 and plant_grid[y + 1][x - 1] is not None)
+                    or (y < 4 and x < 4 and plant_grid[y + 1][x + 1] is not None)
+                ):
+                    available_positions_grid[y][x] = 1
+                    available_positions_array.append(Position(x, y))
+
+    outputs.print_table(available_positions_grid)
+
+    print("[", end="")
+    for position in available_positions_array:
+        print(position, end="")
+        print(", ", end="")
+
+    print("]")
+
+    # Now we have the available positions, we can choose one of them randomly
+
+    # The number of available position is the length of the array available_positions_array
+    # We need a random number between 0 and the length of the array - 1
+
+    random_position_index = random.randint(0, len(available_positions_array) - 1)
+
+    print(f"Random position index: {random_position_index}")
+
+    # Now we have the index, we can get the position
+
+    random_position = available_positions_array[random_position_index]
+
+    print(f"Random position: {random_position}")
+
+    # Now we have the position, we can choose one of the remaining stations randomly
+
+    # The number of remaining stations is the length of the array stationModels
+
+    random_station_index = random.randint(0, len(station_models) - 1)
+
+    print(f"Random station index: {random_station_index}")
+
+    # Now we have the index, we can get the station
+
+    random_station_name = list(station_models.keys())[random_station_index]
+
+    print(f"Random station: {random_station_name}")
+
+    # Now we have the position and the station, we can place the station in the grid
+
+    plant_grid[random_position.y][random_position.x] = station_models.pop(
+        random_station_name
+    )
+
+    model.print_table(plant_grid)
+
+print("Configuration obtained")
+```
