@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from math import sqrt
 from typing import Dict, Generic, List, NotRequired, Optional, TypeVar, TypedDict
 
@@ -82,6 +83,9 @@ class StationModel:
 
     def __str__(self) -> str:
         return f"{self.name}"
+
+    def toJSON(self):
+        return json.dumps(self)
 
 
 PlantGridType = List[List[StationModel | None]]

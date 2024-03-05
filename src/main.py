@@ -57,9 +57,21 @@ check_configuration_each_leave(first_node, flow_graph)
 
 print("Configurations checked")
 
-print("Count of valid configurations: " + str(check_configuration_each_leave.count_of_valid_configurations))
-print("Count of total configurations: " + str(check_configuration_each_leave.count_of_total_configurations))
-print("Rate of valid configurations: " + str(check_configuration_each_leave.count_of_valid_configurations / check_configuration_each_leave.count_of_total_configurations))
+print(
+    "Count of valid configurations: "
+    + str(check_configuration_each_leave.count_of_valid_configurations)
+)
+print(
+    "Count of total configurations: "
+    + str(check_configuration_each_leave.count_of_total_configurations)
+)
+print(
+    "Rate of valid configurations: "
+    + str(
+        check_configuration_each_leave.count_of_valid_configurations
+        / check_configuration_each_leave.count_of_total_configurations
+    )
+)
 
 # Print graph again
 
@@ -92,7 +104,10 @@ status = {"best_performance_ratio": 9999999999.0, "best_performance_node": None}
 check_performance_each_leave(first_node, status, flow_graph)
 
 print("Performance checked")
-print("Count of checked configurations: " + str(check_performance_each_leave.count_of_checked_configurations))
+print(
+    "Count of checked configurations: "
+    + str(check_performance_each_leave.count_of_checked_configurations)
+)
 
 if status["best_performance_node"]:
     plant_grid, _ = graph_problem.create_plant_from_node_with_station_models_used(
