@@ -53,7 +53,7 @@ Stations:
 
     Robot1:
       Transport:
-        Range: 1.4
+        Range: 4
         Parts:
           - Part1
           - Part2
@@ -61,7 +61,7 @@ Stations:
 
     Robot2:
       Transport:
-        Range: 1.4
+        Range: 4
         Parts:
           - Part1
           - Part2
@@ -95,12 +95,16 @@ Stations:
       Activities:
         - Activity1
 
-Process:
+Parts:
   Part3:
-    - Activity1:
-        Requires:
-          - Part1
-          - Part2
-        Returns:
-          - Part3
-        TimeSpend: 3.0
+    Activities:
+      - Activity1
+
+Activities:
+  Activity1:
+    Requires:
+      - Part1
+      - Part2
+    Returns:
+      - Part3
+    TimeSpend: 3.0
