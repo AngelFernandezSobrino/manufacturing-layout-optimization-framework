@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <title>Layout optimizer</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <link type="text/css" rel="stylesheet" href="/static/app.css" />
+
+    <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+    <script src="/static/monaco.js"></script>
+    <script src="/static/app.js"></script>
+</head>
+
+<body>
+    <nav>
+        <button id="run" onclick="request()">Run app</button>
+        <button id="load" onclick="loadSampleModel()">Load sample</button>
+        <button id="download" onclick="downloadModel()">Download model</button>
+        <input type="file" id="file">
+        <button onclick="uploadModel()">Load Selected File</button>
+    </nav>
+
+    <div id="editor"></div>
+
+    <div id="result">
+        <div id="result-header">
+            <h2>Result</h2>
+            <a class="download-button" href="javascript:void(0)" role="button" onclick="downloadResult()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="#ffffff" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+                    <path d="M7 11l5 5l5 -5" />
+                    <path d="M12 4l0 12" />
+                </svg>
+            </a>
+            <a class="close-button" href="javascript:void(0)" role="button" onclick="closeResult()">X</a>
+        </div>
+        <div id="result-content">
+        </div>
+    </div>
+
+</body>
+
+</html>

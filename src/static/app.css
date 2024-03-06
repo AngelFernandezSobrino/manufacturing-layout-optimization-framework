@@ -1,0 +1,146 @@
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+html,
+body {
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+}
+
+body {
+	display: flex;
+	flex-direction: column;
+}
+
+
+nav {
+	flex-grow: 0;
+}
+
+#editor {
+	flex-shrink: 1;
+	flex-grow: 1;
+	flex-basis: 400px;
+	min-height: 400px;
+	max-height: max-content;
+	background-color: #1e1e1e;
+}
+
+#result {
+	flex-grow: 0;
+	flex-basis: 0;
+	transition: flex-basis 0.5s;
+	height: 0;
+}
+
+#result #result-header {
+	height: 0;
+}
+
+#result.active {
+	flex-basis: fit-content;
+}
+
+#result.active #result-content {
+	height: 400px;
+}
+
+#result.active #result-header {
+	height: fit-content;
+	background-color: #1e1e1e;
+	border-top: #393939 1px solid;
+	overflow: hidden;
+}
+
+#result.active #result-header h2 {
+	color: #ffffff;
+	padding-top: 6px;
+	padding-bottom: 6px;
+	padding-left: 15px;
+	margin-top: 6px;
+	margin-bottom: 6px;
+	font-size: medium;
+	flex-grow: 1;
+}
+
+#result.active table {
+	background-color: rgb(219, 216, 216);
+}
+
+.plant-grid th,
+td {
+	background-color: #1e1e1e;
+	color: #80c0a8;
+	margin: 0;
+	padding: 0;
+}
+
+.plant-grid {
+	width: 100%;
+	height: 100%;
+}
+
+.plant-grid th {
+	width: 100px;
+	height: 40px;
+}
+
+.plant-grid td p {
+	text-align: center;
+}
+
+.plant-grid .index {
+	width: 35px;
+	/* display: flex;
+	justify-content: center;
+	align-items: center; */
+}
+
+body {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#result-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+}
+
+#result-header .close-button {
+	background-color: #1e1e1e;
+	border: none;
+	color: #ffffff;
+	text-decoration: none;
+	padding: 5px;
+	margin-right: 15px;
+	flex-grow: 0;
+	border-radius: 3px;
+	font-size: 22px;
+}
+
+#result-header .close-button:hover {
+	background-color: #393939;
+}
+
+#result-header .download-button {
+	background-color: #1e1e1e;
+	border: none;
+	color: #ffffff;
+	text-decoration: none;
+	padding: 0;
+	margin-right: 15px;
+	flex-grow: 0;
+	margin-top: 4px;
+}
+
+#result #result-content {
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-bottom: 15px;
+	background-color: #1e1e1e;
+}

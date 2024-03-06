@@ -4,50 +4,47 @@ function request() {
 
 
     postData("/run", window.editor.getValue()).then((data) => {
-        console.log(data); // JSON data parsed by `data.json()` call
+        console.log(); // JSON data parsed by `data.json()` call
 
-        document.querySelector("#container").style.height = "70%"
+        window.localStorage.setItem("result", JSON.stringify(data))
 
-        let resultsNode = document.querySelector("#result")
+        document.querySelector("#result").classList.add("active")
+
+        let resultsNode = document.querySelector("#result-content")
         let table = document.createElement("table")
+        table.classList.add("plant-grid")
         resultsNode.appendChild(table)
 
         let thead = document.createElement("thead")
         table.appendChild(thead)
         let tr = document.createElement("tr")
         thead.appendChild(tr)
-        data.forEach((row, row_index) => {
+        let th = document.createElement("th")
+        th.classList.add("index")
+        tr.appendChild(th)
+        data.forEach((column, column_index) => {
             let th = document.createElement("th")
-            th.innerText = "Cell " + row_index
-            th.style.width = "100px"
+            th.innerText = column_index + 1
             tr.appendChild(th)
         });
 
         let tbody = document.createElement("tbody")
         table.appendChild(tbody)
-
         data.forEach((row, row_index) => {
-
             let tr = document.createElement("tr")
-
-            tr.style.height = "40px"
-            tr.style.borderWidth = "1px"
-            tr.style.borderStyle = "solid"
-            tr.style.borderColor = "grey"
             tbody.appendChild(tr)
-
+            let th = document.createElement("th")
+            th.innerText = row_index + 1
+            th.classList.add("index")
+            tr.appendChild(th)
             row.forEach((cell, column_index) => {
-
                 let td = document.createElement("td")
-
-                td.id = `${column_index}-${row_index}`
-                td.style.width = "100px"
-                td.style.height = "100%"
-                td.style.borderWidth = "0 2px 0 0"
-                td.style.borderStyle = "solid"
-                td.style.borderColor = "grey"
-                td.style.width = "100px"
-                td.innerText = cell
+                td.classList.add("plant-grid_station")
+                if (cell != null) {
+                    td.classList.add("plant-grid_active")
+                }
+                td.id = `plant-grid-${column_index}-${row_index}`
+                cell != null ? td.innerHTML = `<p>${cell}</p>` : td.innerHTML = `<p> </p>`
                 tr.appendChild(td)
             })
 
@@ -120,3 +117,23 @@ document.addEventListener("keydown", (event) => {
         downloadModel();
     }
 }, false);
+
+
+function closeResult() {
+    document.querySelector("#result").classList.remove("active")
+    document.querySelector("#result-content").innerHTML = ""
+}
+
+
+function downloadResult() {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/json;charset=utf-8,' + window.localStorage.getItem("result"));
+    element.setAttribute('download', "results.json");
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
