@@ -2,12 +2,12 @@
 name = "smartfactory-process-graph-optimization"
 version = "0.1.0"
 description = ""
-authors = ["Ángel Fernández Sobrino <fernandezsobrinoangel@gmail.com>"]
+authors = ["Angel Fernandez Sobrino <fernandezsobrinoangel@gmail.com>"]
 readme = "README.md"
 packages = [{include = "smartfactory_process_graph_optimization"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 pyyaml = "^6.0.1"
 prettytable = "^3.9.0"
 pyvis = "^0.3.2"
@@ -23,6 +23,7 @@ black = "^23.12.1"
 pylint = "^3.0.3"
 poethepoet = "^0.24.4"
 ipykernel = "^6.29.0"
+pyinstaller = "^6.4.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,3 +32,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poe.tasks]
 graph = "python graph.py"
 main = "python main.py"
+serve = "python src/server.py"
+generate_exe = "pyinstaller -w -F --onefile --add-data 'src/static:static' -p 'src' src/server.py"
+export_requirements = { "shell" = "poetry export --without-hashes --format=requirements.txt > requirements.txt" }
+build = ["generate_exe", "export_requirements"]
