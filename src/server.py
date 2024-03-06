@@ -22,6 +22,11 @@ from support import (
 )
 
 
+@app.route("/")
+def redirect_to_editor():
+    return app.send_static_file("editor.html")
+
+
 @app.route("/run", methods=["POST"])
 def run():
 
@@ -40,7 +45,7 @@ def run():
     flow_graph.generate_model_graph()
 
     flow_graph.print()
-    flow_graph.export("manufacturing_graph")
+    # flow_graph.export("manufacturing_graph")
 
     print("Amount of leaves: " + str(first_node.count_leaves()))
 
@@ -80,8 +85,8 @@ def run():
         )
         print("Plant hash: " + get_plant_hash(plant_grid))
 
-        print("Other configurations values: ")
-        print(check_performance_each_leave.other_config_values)
+        # print("Other configurations values: ")
+        # print(check_performance_each_leave.other_config_values)
 
         outputs.print_plant_grid(plant_grid)
 
@@ -92,3 +97,7 @@ def run():
         print("No valid configuration found")
 
     return json.dumps(plant_grid, default=lambda obj: obj.name)
+
+
+if __name__ == "__main__":
+    app.run()
