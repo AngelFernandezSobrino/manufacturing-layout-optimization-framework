@@ -1,6 +1,6 @@
 from typing import List
 
-from src import model, outputs
+import model, outputs
 from . import ProcessGraphNode, ProcessGraphEdge
 
 
@@ -80,8 +80,6 @@ class ManufacturingProcessGraph:
                                     transport_node.edges.append(new_edge)
                                     self.edges.append(new_edge)
         self.nodes = nodes
-
-
 
     def reset_positions(self) -> None:
         for node in self.nodes:

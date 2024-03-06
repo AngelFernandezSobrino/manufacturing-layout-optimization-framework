@@ -4,7 +4,7 @@ from graph.process import ManufacturingProcessGraph
 from model import StationModel
 
 import graph.problem as graph_problem
-from src.model.tools import get_plant_hash
+from model.tools import get_plant_hash
 
 
 def populate_next_nodes(node: TreeNode, station_models: Dict[str, StationModel]):
@@ -49,7 +49,7 @@ def check_configuration_each_leave(
 
     at_least_one_valid = False
 
-    for index in range(len(node.next)-1, -1, -1):
+    for index in range(len(node.next) - 1, -1, -1):
         # print(f"Checking {index}")
         if check_configuration_each_leave(node.next[index], flow_graph):
             at_least_one_valid = True
@@ -58,8 +58,11 @@ def check_configuration_each_leave(
 
     return at_least_one_valid
 
+
 check_configuration_each_leave.count_of_valid_configurations = 0
 check_configuration_each_leave.count_of_total_configurations = 0
+
+
 def check_performance_each_leave(
     node: TreeNode, status: dict, flow_graph: ManufacturingProcessGraph
 ):
@@ -89,6 +92,7 @@ def check_performance_each_leave(
 
     for next_node in node.next:
         check_performance_each_leave(next_node, status, flow_graph)
+
 
 check_performance_each_leave.count_of_checked_configurations = 0
 check_performance_each_leave.other_config_values = []
