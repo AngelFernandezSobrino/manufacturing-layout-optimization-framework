@@ -33,6 +33,6 @@ build-backend = "poetry.core.masonry.api"
 graph = "python graph.py"
 main = "python main.py"
 serve = "python src/server.py"
-generate_exe = "pyinstaller -w -F --onefile --add-data 'src/static:static' -p 'src' src/server.py"
+generate_exe = "pyinstaller -w -F --add-data 'src/static:static' -p 'src' src/server.py"
 export_requirements = { "shell" = "poetry export --without-hashes --format=requirements.txt > requirements.txt" }
 build = ["generate_exe", "export_requirements"]
