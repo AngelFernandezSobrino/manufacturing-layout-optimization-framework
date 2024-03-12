@@ -2,7 +2,7 @@ import itertools
 from typing import List
 
 import model, outputs
-from . import StationNode, ProcessGraphEdge
+from . import PathEdge, StationNode, RoutingGraphEdge
 
 
 class ManufacturingProcessGraph:
@@ -12,8 +12,8 @@ class ManufacturingProcessGraph:
         self.activities_to_be_executed = None
         self.parts_to_be_produced = None
         self.station_nodes: List[StationNode] = []
-
-        self.edges: List[ProcessGraphEdge] = []
+        self.routing_edges: List[RoutingGraphEdge] = []
+        self.path_edges: List[PathEdge] = []
 
         self.system_model = system_model
 
@@ -47,7 +47,7 @@ class ManufacturingProcessGraph:
         # Graph with all the possible part flows. It represents the possible part flows between the stations
         # First we are going to define a node for each station in the plant
 
-        nodes: List[StationNode[ProcessGraphEdge]] = []
+        nodes: List[StationNode] = []
 
         for station in self.system_model.stations.models.values():
             nodes.append(StationNode(station))
@@ -56,37 +56,83 @@ class ManufacturingProcessGraph:
 
         for node in nodes:
             node.edges = []
-            if node.station.transports is None:
+            if node.model.transports is None:
                 continue
             transport_node = node
 
             for other_node in nodes:
-                if other_node.station.storages is None:
+                if other_node.model.storages is None:
                     continue
 
                 for storage_index, storage_node in enumerate(other_node.storage_nodes):
                     for storage_type in storage_node.storage.type:
 
-                        if storage_type in transport_node.station.transports.parts:
+                        if storage_type in transport_node.model.transports.parts:
                             if storage_node.storage.remove == 1:
-                                new_edge = ProcessGraphEdge(
+                                new_edge = RoutingGraphEdge(
                                     storage_type, storage_node, transport_node
                                 )
                                 if new_edge not in transport_node.edges:
                                     other_node.edges.append(new_edge)
                                     transport_node.edges.append(new_edge)
-                                    self.edges.append(new_edge)
+                                    storage_node.routing_edges.append(new_edge)
+                                    self.routing_edges.append(new_edge)
 
                             if storage_node.storage.add == 1:
-                                new_edge = ProcessGraphEdge(
+                                new_edge = RoutingGraphEdge(
                                     storage_type, transport_node, other_node
                                 )
                                 if new_edge not in transport_node.edges:
                                     other_node.edges.append(new_edge)
                                     transport_node.edges.append(new_edge)
-                                    self.edges.append(new_edge)
+                                    storage_node.routing_edges.append(new_edge)
+                                    self.routing_edges.append(new_edge)
 
         self.station_nodes = nodes
+
+        # Now we have to generate the path edges, which represent the routes between storage positions.
+
+        for node in nodes:
+            if node.model.storages is None:
+                continue
+
+            for storage_node in node.storage_nodes:
+                for other_node in nodes:
+                    if other_node.model.storages is None:
+                        continue
+
+                    for other_storage_node in other_node.storage_nodes:
+                        if storage_node.storage is other_storage_node.storage:
+                            continue
+                        if storage_node.storage.type != other_storage_node.storage.type:
+                            continue
+                        if (
+                            storage_node.storage.add == 1
+                            and other_storage_node.storage.remove == 1
+                        ):
+                            new_edge = PathEdge(
+                                storage_node.storage.type,
+                                other_storage_node,
+                                storage_node,
+                            )
+                            if new_edge not in storage_node.pathing_edges:
+                                storage_node.pathing_edges.append(new_edge)
+                                other_storage_node.pathing_edges.append(new_edge)
+                                self.path_edges.append(new_edge)
+
+                        if (
+                            storage_node.storage.remove == 1
+                            and other_storage_node.storage.add == 1
+                        ):
+                            new_edge = PathEdge(
+                                storage_node.storage.type,
+                                storage_node,
+                                other_storage_node,
+                            )
+                            if new_edge not in storage_node.pathing_edges:
+                                storage_node.pathing_edges.append(new_edge)
+                                other_storage_node.pathing_edges.append(new_edge)
+                                self.path_edges.append(new_edge)
 
     def reset_positions(self) -> None:
         for node in self.station_nodes:

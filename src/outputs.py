@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from math import cos, pi, sin
+from os import path
 from typing import List, Callable, TYPE_CHECKING
 import prettytable
 
@@ -9,6 +10,7 @@ from graph import (
     DirectedGraphEdge,
     DirectedGraphEdgeInterface,
     DirectedGraphNodeInterface,
+    StationNode,
 )
 from model import PlantGridType
 
@@ -26,14 +28,36 @@ import pyvis as vis  # type: ignore
 import networkx as nx  # type: ignore
 
 
-def print_directed_graph_table(nodes: List[DirectedGraphNodeInterface]):
+def print_directed_graph_table(nodes: List[StationNode]):
     nodes_table = prettytable.PrettyTable()
 
-    nodes_table.field_names = ["Node", "Outgoing edges"]
+    nodes_table.field_names = ["Node", "Storages", "Routing edges", "Path edges"]
+
+    row = []
 
     for node in nodes:
-        for edge in node.edges:
-            nodes_table.add_row([str(node), str(edge)])
+        row = [str(node)]
+        if len(node.storage_nodes) > 0:
+            row.extend(
+                [
+                    str(node.storage_nodes),
+                    str(
+                        [
+                            str(storage_node.routing_edges)
+                            for storage_node in node.storage_nodes
+                        ]
+                    ),
+                    str(
+                        [
+                            str(storage_node.pathing_edges)
+                            for storage_node in node.storage_nodes
+                        ]
+                    ),
+                ]
+            )
+
+        else:
+            row.extend(["", str([str(edge) for edge in node.edges])])
 
     print(nodes_table)
 
@@ -77,7 +101,7 @@ def export_directed_graph(
         central_gravity=0.3,
         spring_length=100,
         damping=0.09,
-        overlap=0.1,
+        overlap=1,
     )
     # graph_viewer.set_edge_smooth('dynamic')
     graph_viewer.save_graph(f"output/last_{name}.html")
@@ -103,7 +127,7 @@ def export_tree_graph(first_node: TreeNode, name: str):
     # graph_viewer.toggle_physics(False)
     graph_viewer.from_nx(graph_generator)
     graph_viewer.barnes_hut(
-        gravity=0, central_gravity=0.3, spring_length=100, damping=0.09, overlap=0.1
+        gravity=0, central_gravity=0.3, spring_length=100, damping=0.09, overlap=1
     )
     # graph_viewer.set_edge_smooth('dynamic')
     graph_viewer.save_graph(f"output/history/{now_string}_{name}.html")

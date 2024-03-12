@@ -10,8 +10,7 @@ from model import tools
 from . import (
     TreeNode,
     StationNode,
-    ProcessGraphEdge,
-    ProcessGraphEdgeWithTransport,
+    RoutingGraphEdge,
 )
 
 from model import Vector, PlantGridType, StationModel
@@ -160,35 +159,26 @@ def check_configuration_v2(
             if station is None:
                 continue
             for node in graph.station_nodes:
-                if node.station.name == station.name:
+                if node.model.name == station.name:
                     node.position.set(colIndex, rowIndex)
+    """
+    There are two possible ways to calculate the performance of the configuration
+    Considering that all the edges have to be used, so all the possible paths that the robots can do have to be possible, i.e. all the edges can be used and the distance between robot and all possible nodes have to be under the robot range
+    The other way is to allow to have edges out of range, but making sure that the process can still be done, i.e. the process required parts can reach the objective manufacturing process nodes, and the result parts can reach the output nodes
+    The first method is more strict, but the second one is more realistic, as usually each robot would be programed to do the paths that it is more efficient, and the paths that are less efficient would be done by other robots. Something like and specialized robot for each path, although some paths could be done by more than one robot for flexibility.
 
-    # There are two possible ways to calculate the performance of the configuration
-    # Considering that all the edges have to be used, so all the possible paths that the robots can do have to be possible, i.e. all the edges can be used and the distance between robot and all possible nodes have to be under the robot range
-    # The other way is to allow to have edges out of range, but making sure that the process can still be done, i.e. the process required parts can reach the objective manufacturing process nodes, and the result parts can reach the output nodes
-    # The first method is more strict, but the second one is more realistic, as usually each robot would be programed to do the paths that it is more efficient, and the paths that are less efficient would be done by other robots. Something like and specialized robot for each path, although some paths could be done by more than one robot for flexibility.
+    Anyway, the first method is more simple to implement, so we are going to use it for now
 
-    # Anyway, the first method is more simple to implement, so we are going to use it for now
+    We are going to iterate through all the edges, check the distance between the robot and the origin, or the robot and the destiny, to check if the robot can do the path
 
-    # We are going to iterate through all the edges, check the distance between the robot and the origin, or the robot and the destiny, to check if the robot can do the path
-
-    # Here we are going to iterate through all the edges, check the distance between the origin and the destiny and return false is any distance is bigger than the robot range
-    for edge in graph.edges:
-        stations_distance = (edge.origin.position - edge.destiny.position).distance()
-        if edge.origin.station.transports is not None:
-            if edge.origin.station.transports.range < stations_distance:
-                # print("Edge out of range")
-                # print("Origin station: " + edge.origin.station.name)
-                # print("Destiny station: " + edge.destiny.station.name)
-                # print("Stations distance: " + str(stations_distance))
-                # print("Robot range: " + str(edge.origin.station.transport.range))
-                # print("Robot position: " + str(edge.origin.position))
-                # print("Destiny position: " + str(edge.destiny.position))
-
-                return False
-        if edge.destiny.station.transports is not None:
-            if edge.destiny.station.transports.range < stations_distance:
-                return False
+    Here we are going to iterate through all the edges, check the distance between the origin and the destiny and return false is any distance is bigger than the robot range
+    """
+    for edge in graph.routing_edges:
+        stations_distance = (
+            edge.transport.position - edge.storage.absolute_position()
+        ).distance()
+        if edge.transport.model.transports.range < stations_distance:  # type: ignore
+            return False
 
     return True
 
@@ -207,7 +197,7 @@ def check_performace_v2(
             if station is None:
                 continue
             for node in graph.station_nodes:
-                if node.station.name == station.name:
+                if node.model.name == station.name:
                     node.position.set(colIndex, rowIndex)
 
     # There are two possible ways to calculate the performance of the configuration
@@ -219,8 +209,10 @@ def check_performace_v2(
 
     # We are going to iterate through all the edges, check the distance between the robot and the origin, or the robot and the destiny, to check if the robot can do the path
 
-    for edge in graph.edges:
-        stations_distance = (edge.origin.position - edge.destiny.position).distance()
+    for edge in graph.path_edges:
+        stations_distance = (
+            edge.origin.absolute_position() - edge.destiny.absolute_position()
+        ).distance()
         result += stations_distance
 
     return result
