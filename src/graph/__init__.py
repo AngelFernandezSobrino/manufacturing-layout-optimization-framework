@@ -30,7 +30,7 @@ class DirectedGraphEdge(Generic[DirectedGraphNodeInterface]):
         self.node: DirectedGraphNodeInterface
 
 
-class ProcessGraphNode(DirectedGraphNode, Generic[DirectedGraphEdgeInterface]):
+class StationNode(DirectedGraphNode):
     """
     Representation of each node of the graph, it contains the station and all the directed edges to the other stations.
 
@@ -38,13 +38,43 @@ class ProcessGraphNode(DirectedGraphNode, Generic[DirectedGraphEdgeInterface]):
 
     def __init__(self, station: model.StationModel) -> None:
         self.id: str = station.name
-        self.edges: List[DirectedGraphEdgeInterface] = []
+        del self.edges
 
         self.station: model.StationModel = station
+        self.storage_nodes: List[StorageNode] = []
         self.position: model.Vector
+
+    def generate_storage_nodes(self) -> None:
+        if self.station.storages is None:
+            return
+
+        for storage in self.station.storages:
+            storage_node = StorageNode(storage)
+            storage_node.relative_position = storage.position
+            self.storage_nodes.append(storage_node)
 
     def reset_position(self) -> None:
         self.position = model.Vector(0, 0)
+
+    def __str__(self) -> str:
+        return f"Station: {self.station}"
+
+
+class StorageNode(DirectedGraphNode):
+    """
+    Representation of each node of the graph, it contains the station and all the directed edges to the other stations.
+
+    """
+
+    def __init__(self, storage: model.Storage, station: model.StationModel) -> None:
+        self.id: str = f"{station.name} - {storage.type} - {storage.position}"
+        self.edges: List[ProcessGraphEdge] = []
+        self.storage: model.Storage = storage
+        self.parent_station: StationNode = station
+        self.relative_position: model.Vector
+
+    def absolute_position(self) -> model.Vector:
+        return self.station.position + self.relative_position
 
     def __str__(self) -> str:
         return f"Station: {self.station}"
@@ -56,12 +86,10 @@ class ProcessGraphEdge(DirectedGraphEdge):
 
     """
 
-    def __init__(
-        self, part: Any, origin: ProcessGraphNode, destiny: ProcessGraphNode
-    ) -> None:
+    def __init__(self, part: Any, origin: StationNode, destiny: StationNode) -> None:
         self.id: str = f"{part}"
-        self.destiny: ProcessGraphNode = destiny
-        self.origin: ProcessGraphNode = origin
+        self.destiny: StationNode = destiny
+        self.origin: StationNode = origin
         self.part = part
 
     def __str__(self) -> str:
@@ -75,34 +103,6 @@ class ProcessGraphEdge(DirectedGraphEdge):
             self.id == __other.id
             and self.origin == __other.origin
             and self.destiny == __other.destiny
-        ):
-            return True
-        else:
-            return False
-
-
-class ProcessGraphEdgeWithTransport(DirectedGraphEdge):
-    """
-    Representation of directed  edges of the graph, it contains the part associated with that edge and the destination node. This edge represents a transport capability between two stations in one direction. EdgeWithTransport is a special case of Edge, it has a transport station associated. Any edge has to go from a storage station to another storage station, but it has to go through a transport station. The transport station that is used is stored in the transport_station attribute.o
-
-    """
-
-    def __init__(self, part: Any, transport: model.StationModel) -> None:
-        self.id: str = f"{part} to {transport.name}"
-        self.node: ProcessGraphNode
-
-        self.part = part
-        self.transport: model.StationModel
-
-    def __str__(self) -> str:
-        return f"Part: {self.part}, Destination: {self.node}, Transport station: {self.transport}"
-
-    def __eq__(self, __other: Any) -> bool:
-
-        if (
-            self.part == __other.part
-            and self.node == __other.node
-            and self.transport == __other.transport
         ):
             return True
         else:

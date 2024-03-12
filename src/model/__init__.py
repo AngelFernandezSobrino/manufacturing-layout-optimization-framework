@@ -67,14 +67,14 @@ class StationModel:
     def __init__(self, name: str, station_model_dict: StationModelDict) -> None:
         self.name: str = name
         try:
-            self.storage = [Storage(s) for s in station_model_dict["Storage"]]
+            self.storages = [Storage(s) for s in station_model_dict["Storage"]]
         except:
-            self.storage = None
+            self.storages = None
 
         try:
-            self.transport = Transport(station_model_dict["Transport"])
+            self.transports = Transport(station_model_dict["Transport"])
         except:
-            self.transport = None
+            self.transports = None
 
         try:
             self.activities = station_model_dict["Activities"]
@@ -98,7 +98,7 @@ class Storage:
         storage_dict: StorageDict,
     ) -> None:
         self.type: List[str] = storage_dict["Type"]
-        self.place: Vector[float] = Vector(
+        self.position: Vector[float] = Vector(
             storage_dict["Place"]["X"], storage_dict["Place"]["Y"]
         )
         self.add: int = storage_dict["Add"]

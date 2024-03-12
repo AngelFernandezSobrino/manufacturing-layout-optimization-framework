@@ -9,7 +9,7 @@ from model import tools
 
 from . import (
     TreeNode,
-    ProcessGraphNode,
+    StationNode,
     ProcessGraphEdge,
     ProcessGraphEdgeWithTransport,
 )
@@ -72,7 +72,7 @@ def get_stations_with_transport_vectors(
             station = plant_grid[y][x]
             if station is None:
                 continue
-            if station.transport is not None:
+            if station.transports is not None:
                 transport_vectors.append(Vector(x, y))
 
     if len(transport_vectors) > 0:
@@ -159,7 +159,7 @@ def check_configuration_v2(
         for rowIndex, station in enumerate(iterable=column):
             if station is None:
                 continue
-            for node in graph.nodes:
+            for node in graph.station_nodes:
                 if node.station.name == station.name:
                     node.position.set(colIndex, rowIndex)
 
@@ -175,8 +175,8 @@ def check_configuration_v2(
     # Here we are going to iterate through all the edges, check the distance between the origin and the destiny and return false is any distance is bigger than the robot range
     for edge in graph.edges:
         stations_distance = (edge.origin.position - edge.destiny.position).distance()
-        if edge.origin.station.transport is not None:
-            if edge.origin.station.transport.range < stations_distance:
+        if edge.origin.station.transports is not None:
+            if edge.origin.station.transports.range < stations_distance:
                 # print("Edge out of range")
                 # print("Origin station: " + edge.origin.station.name)
                 # print("Destiny station: " + edge.destiny.station.name)
@@ -186,8 +186,8 @@ def check_configuration_v2(
                 # print("Destiny position: " + str(edge.destiny.position))
 
                 return False
-        if edge.destiny.station.transport is not None:
-            if edge.destiny.station.transport.range < stations_distance:
+        if edge.destiny.station.transports is not None:
+            if edge.destiny.station.transports.range < stations_distance:
                 return False
 
     return True
@@ -206,7 +206,7 @@ def check_performace_v2(
         for rowIndex, station in enumerate(iterable=column):
             if station is None:
                 continue
-            for node in graph.nodes:
+            for node in graph.station_nodes:
                 if node.station.name == station.name:
                     node.position.set(colIndex, rowIndex)
 
@@ -222,7 +222,5 @@ def check_performace_v2(
     for edge in graph.edges:
         stations_distance = (edge.origin.position - edge.destiny.position).distance()
         result += stations_distance
-
-
 
     return result
