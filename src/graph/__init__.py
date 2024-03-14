@@ -28,7 +28,8 @@ class DirectedGraphNode(Generic[DirectedGraphEdgeInterface]):
 class DirectedGraphEdge(Generic[DirectedGraphNodeInterface]):
     def __init__(self) -> None:
         self.id: str
-        self.node: DirectedGraphNodeInterface
+        self.origin: DirectedGraphNodeInterface
+        self.destiny: DirectedGraphNodeInterface
 
 
 class StationNode(DirectedGraphNode):
@@ -39,11 +40,15 @@ class StationNode(DirectedGraphNode):
 
     def __init__(self, station: model.StationModel) -> None:
         self.id: str = station.name
-
         self.model: model.StationModel = station
+
         self.storage_nodes: List[StorageNode] = []
-        self.position: model.Vector[float]
+
         self.edges: List[RoutingGraphEdge] = []
+
+        self.position: model.Vector[float]
+
+        self.generate_storage_nodes()
 
     def generate_storage_nodes(self) -> None:
         if self.model.storages is None:
@@ -58,7 +63,10 @@ class StationNode(DirectedGraphNode):
         self.position = model.Vector(0, 0)
 
     def __str__(self) -> str:
-        return f"Station: {self.model}"
+        return f"{self.id}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class StorageNode(DirectedGraphNode):
@@ -68,11 +76,14 @@ class StorageNode(DirectedGraphNode):
     """
 
     def __init__(self, storage: model.Storage, station: StationNode) -> None:
-        self.id: str = f"{station.model.name} - {storage.type} - {storage.position}"
-        self.routing_edges: List[RoutingGraphEdge] = []
-        self.pathing_edges: List[RoutingGraphEdge] = []
-        self.storage: model.Storage = storage
+        self.id: str = f"{station.model.name}-{storage.type}-{storage.position}"
+        self.model: model.Storage = storage
+
         self.parent_station: StationNode = station
+
+        self.edges: List[RoutingGraphEdge] = []
+        self.pathing_edges: List[PathEdge] = []
+
         self.relative_position: model.Vector[float] = model.Vector(
             storage.position.x, storage.position.y
         )
@@ -81,7 +92,10 @@ class StorageNode(DirectedGraphNode):
         return self.parent_station.position + self.relative_position
 
     def __str__(self) -> str:
-        return f"Station storage: {self.parent_station} {self.storage}"
+        return f"{self.id}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class RoutingGraphEdge(DirectedGraphEdge):
@@ -96,7 +110,7 @@ class RoutingGraphEdge(DirectedGraphEdge):
 
     def __init__(
         self,
-        part: Any,
+        part: str,
         transport: StationNode,
         storage: StorageNode,
         direction: Direction,
@@ -106,11 +120,18 @@ class RoutingGraphEdge(DirectedGraphEdge):
         self.transport = transport
         self.storage = storage
         self.direction = direction
-
+        self.origin = None
+        self.destiny = None
         self.part = part
 
     def __str__(self) -> str:
-        return f"Part: {self.part}, Transport: {self.transport} Storage: {self.storage} Direction: {self.direction}"
+        moving_symbol = (
+            "->" if self.direction == RoutingGraphEdge.Direction.INPUT else "<-"
+        )
+        return f"{self.transport} {moving_symbol} {self.part} {moving_symbol} {self.storage}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def __eq__(self, __other: Any) -> bool:
         if not isinstance(__other, RoutingGraphEdge):
@@ -136,6 +157,12 @@ class PathEdge(DirectedGraphEdge):
         self.destiny = destiny
 
         self.part = part
+
+    def __str__(self) -> str:
+        return f"{self.origin} -> {self.part} -> {self.destiny}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class TreeNode:

@@ -1,5 +1,9 @@
 from pathlib import Path
+import sys
 from typing import Dict, List
+
+sys.path.append("./src/")
+sys.path.append("./")
 
 import outputs
 from graph import TreeNode
@@ -8,14 +12,14 @@ from model import StationModel, Vector
 
 from graph import problem as graph_problem
 from model import tools as model_tools
-from src.model.tools import get_plant_hash
 from support import (
     check_configuration_each_leave,
     check_performance_each_leave,
     populate_next_nodes,
 )
 
-spec = model_tools.SystemSpecification(Path("./model.yaml"))
+spec = model_tools.SystemSpecification()
+spec.read_model_from_source(Path("./model.yaml"))
 
 
 # The position 0, 3 is the center of the first row, and has to contain the InOut station
@@ -115,8 +119,8 @@ if status["best_performance_node"]:
     )
     print("Plant hash: " + get_plant_hash(plant_grid))
 
-    print("Other configurations values: ")
-    print(check_performance_each_leave.other_config_values)
+    # print("Other configurations values: ")
+    # print(check_performance_each_leave.other_config_values)
 
     # Print that configuration
 

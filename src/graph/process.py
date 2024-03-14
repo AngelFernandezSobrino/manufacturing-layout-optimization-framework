@@ -1,5 +1,7 @@
 import itertools
-from typing import List
+from typing import Callable, List, get_origin
+
+import prettytable
 
 import model, outputs
 from . import PathEdge, StationNode, RoutingGraphEdge
@@ -8,12 +10,14 @@ from . import PathEdge, StationNode, RoutingGraphEdge
 class ManufacturingProcessGraph:
 
     def __init__(self, system_model: model.ModelSpecification) -> None:
-        self.stations_producing_objectives = None
-        self.activities_to_be_executed = None
-        self.parts_to_be_produced = None
+        self.stations_producing_objectives = []
+        self.activities_to_be_executed = []
+        self.parts_to_be_produced = []
+
         self.station_nodes: List[StationNode] = []
+
         self.routing_edges: List[RoutingGraphEdge] = []
-        self.path_edges: List[PathEdge] = []
+        self.pathing_edges: List[PathEdge] = []
 
         self.system_model = system_model
 
@@ -54,85 +58,98 @@ class ManufacturingProcessGraph:
 
         # Then we are going to add edges to the nodes. All edges are going from/to a transport station to/from a storage station. We are going to iterate over the nodes and add the edges to all the other nodes available.
 
-        for node in nodes:
-            node.edges = []
-            if node.model.transports is None:
-                continue
-            transport_node = node
+        for transport_node in nodes:
 
-            for other_node in nodes:
-                if other_node.model.storages is None:
+            if transport_node.model.transports is None:
+                continue
+
+            for storage_station_node in nodes:
+                if storage_station_node.model.storages is None:
                     continue
 
-                for storage_index, storage_node in enumerate(other_node.storage_nodes):
-                    for storage_type in storage_node.storage.type:
+                for storage_node in storage_station_node.storage_nodes:
+                    for storage_type in storage_node.model.type:
 
-                        if storage_type in transport_node.model.transports.parts:
-                            if storage_node.storage.remove == 1:
+                        if storage_type.part in transport_node.model.transports.parts:
+
+                            if storage_type.add == 1:
                                 new_edge = RoutingGraphEdge(
-                                    storage_type, storage_node, transport_node
+                                    storage_type.part,
+                                    transport_node,
+                                    storage_node,
+                                    RoutingGraphEdge.Direction.INPUT,
                                 )
                                 if new_edge not in transport_node.edges:
-                                    other_node.edges.append(new_edge)
+                                    storage_node.edges.append(new_edge)
                                     transport_node.edges.append(new_edge)
-                                    storage_node.routing_edges.append(new_edge)
+                                    storage_node.edges.append(new_edge)
                                     self.routing_edges.append(new_edge)
 
-                            if storage_node.storage.add == 1:
+                            if storage_type.remove == 1:
                                 new_edge = RoutingGraphEdge(
-                                    storage_type, transport_node, other_node
+                                    storage_type.part,
+                                    transport_node,
+                                    storage_node,
+                                    RoutingGraphEdge.Direction.OUTPUT,
                                 )
                                 if new_edge not in transport_node.edges:
-                                    other_node.edges.append(new_edge)
+                                    storage_node.edges.append(new_edge)
                                     transport_node.edges.append(new_edge)
-                                    storage_node.routing_edges.append(new_edge)
+                                    storage_node.edges.append(new_edge)
                                     self.routing_edges.append(new_edge)
 
         self.station_nodes = nodes
 
         # Now we have to generate the path edges, which represent the routes between storage positions.
 
-        for node in nodes:
-            if node.model.storages is None:
+        # Loop over the pair of each station storage nodes and all the other storage nodes from the other stations
+        for station_node in nodes:
+            station_node = station_node
+            if station_node.model.storages is None:
                 continue
+            for storage_node in station_node.storage_nodes:
+                for storage_type in storage_node.model.type:
+                    # For each storage_type in each storage_node of each station_node
 
-            for storage_node in node.storage_nodes:
-                for other_node in nodes:
-                    if other_node.model.storages is None:
-                        continue
-
-                    for other_storage_node in other_node.storage_nodes:
-                        if storage_node.storage is other_storage_node.storage:
+                    # Inner loop over all storage nodes of all the stations except the station_node
+                    for other_station_node in nodes:
+                        if other_station_node == station_node:
                             continue
-                        if storage_node.storage.type != other_storage_node.storage.type:
+                        other_storage_station_node = other_station_node
+                        if other_storage_station_node.model.storages is None:
                             continue
-                        if (
-                            storage_node.storage.add == 1
-                            and other_storage_node.storage.remove == 1
-                        ):
-                            new_edge = PathEdge(
-                                storage_node.storage.type,
-                                other_storage_node,
-                                storage_node,
-                            )
-                            if new_edge not in storage_node.pathing_edges:
-                                storage_node.pathing_edges.append(new_edge)
-                                other_storage_node.pathing_edges.append(new_edge)
-                                self.path_edges.append(new_edge)
+                        for other_storage_node in other_station_node.storage_nodes:
+                            for other_storage_type in other_storage_node.model.type:
 
-                        if (
-                            storage_node.storage.remove == 1
-                            and other_storage_node.storage.add == 1
-                        ):
-                            new_edge = PathEdge(
-                                storage_node.storage.type,
-                                storage_node,
-                                other_storage_node,
-                            )
-                            if new_edge not in storage_node.pathing_edges:
-                                storage_node.pathing_edges.append(new_edge)
-                                other_storage_node.pathing_edges.append(new_edge)
-                                self.path_edges.append(new_edge)
+                                # For each other_storage_type in each other_storage_node of each other_station_node
+                                if storage_type.part != other_storage_type.part:
+                                    continue
+
+                                if storage_type.add and other_storage_type.remove:
+                                    new_edge = PathEdge(
+                                        storage_type.part,
+                                        other_storage_node,
+                                        storage_node,
+                                    )
+                                    if new_edge not in storage_node.pathing_edges:
+                                        storage_node.pathing_edges.append(new_edge)
+                                        other_storage_node.pathing_edges.append(
+                                            new_edge
+                                        )
+                                        self.pathing_edges.append(new_edge)
+
+                                if storage_type.remove and other_storage_type.add:
+                                    new_edge = PathEdge(
+                                        storage_type.part,
+                                        storage_node,
+                                        other_storage_node,
+                                    )
+                                    if new_edge not in storage_node.pathing_edges:
+                                        storage_node.pathing_edges.append(new_edge)
+                                        other_storage_node.pathing_edges.append(
+                                            new_edge
+                                        )
+                                        self.pathing_edges.append(new_edge)
 
     def reset_positions(self) -> None:
         for node in self.station_nodes:
@@ -151,17 +168,74 @@ class ManufacturingProcessGraph:
         print("Nodes:")
         [print(node) for node in self.station_nodes]
 
-        outputs.print_directed_graph_table(self.station_nodes)
+        self.print_directed_graph_table(self.station_nodes)
 
     def export(self, name) -> None:
-        outputs.export_directed_graph(self.station_nodes, name)
+        get_origin_id: Callable[[RoutingGraphEdge], str] = lambda edge: (
+            edge.transport.id
+            if edge.direction == RoutingGraphEdge.Direction.INPUT
+            else edge.storage.id
+        )
+        get_destiny_id: Callable[[RoutingGraphEdge], str] = lambda edge: (
+            edge.storage.id
+            if edge.direction == RoutingGraphEdge.Direction.INPUT
+            else edge.transport.id
+        )
+        outputs.export_directed_graph(
+            self.station_nodes, name, get_origin_id, get_destiny_id
+        )
+
+    def print_directed_graph_table(self, nodes: List[StationNode]):
+        nodes_table = prettytable.PrettyTable()
+        nodes_table._max_width = {
+            "Node": 20,
+            "Storages": 150,
+            "Routing edges": 150,
+            "Path edges": 150,
+        }
+
+        nodes_table.field_names = ["Node", "Storages", "Routing edges", "Path edges"]
+
+        row = []
+
+        for node in nodes:
+            row = [str(node)]
+            if len(node.storage_nodes) > 0:
+                next_cell = ""
+                for storage_node in node.storage_nodes:
+                    next_cell += str(storage_node)
+                    next_cell += "\n"
+                row.append(next_cell)
+                next_cell = ""
+                for storage_node in node.storage_nodes:
+                    for edge in storage_node.edges:
+                        next_cell += str(edge)
+                        next_cell += "\n"
+                row.append(next_cell)
+                next_cell = ""
+                for storage_node in node.storage_nodes:
+                    for edge in storage_node.pathing_edges:
+                        next_cell += str(edge)
+                        next_cell += "\n"
+                row.append(next_cell)
+
+            else:
+                edges_cell = ""
+                for edge in node.edges:
+                    edges_cell += str(edge)
+                    edges_cell += "\n"
+                row.extend(["", edges_cell, ""])
+            nodes_table.add_row(row)
+
+        print(nodes_table)
 
 
 if __name__ == "__main__":
     import src.model.tools
     from pathlib import Path
 
-    spec = src.model.tools.SystemSpecification(Path("./model.yaml"))
+    spec = src.model.tools.SystemSpecification()
+    spec.read_model_from_source(Path("./model.yaml"))
 
     flowGraph = ManufacturingProcessGraph(spec.model)
 

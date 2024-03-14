@@ -4,7 +4,6 @@ from graph.process import ManufacturingProcessGraph
 from model import StationModel
 
 import graph.problem as graph_problem
-from model.tools import get_plant_hash
 
 
 def populate_next_nodes(node: TreeNode, station_models: Dict[str, StationModel]):
@@ -67,14 +66,12 @@ def check_performance_each_leave(
     node: TreeNode, status: dict, flow_graph: ManufacturingProcessGraph
 ):
     if node.next is None:
-        plant_grid, _ = graph_problem.create_plant_from_node_with_station_models_used(
-            node
-        )
+        plant, _ = graph_problem.create_plant_from_node_with_station_models_used(node)
         check_performance_each_leave.count_of_checked_configurations += 1
 
-        plant_performance = graph_problem.check_performace_v2(plant_grid, flow_graph)
+        plant_performance = graph_problem.check_performace_v2(plant, flow_graph)
 
-        plant_hash = get_plant_hash(plant_grid)
+        plant_hash = plant.hash()
 
         if plant_hash in "InOut(2,0)Robot1(1,1)PartsStorage(2,1)Robot2(3,1)Press(2,2)":
             check_performance_each_leave.other_config_values.append(

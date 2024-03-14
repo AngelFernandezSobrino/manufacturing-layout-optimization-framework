@@ -28,43 +28,15 @@ import pyvis as vis  # type: ignore
 import networkx as nx  # type: ignore
 
 
-def print_directed_graph_table(nodes: List[StationNode]):
-    nodes_table = prettytable.PrettyTable()
-
-    nodes_table.field_names = ["Node", "Storages", "Routing edges", "Path edges"]
-
-    row = []
-
-    for node in nodes:
-        row = [str(node)]
-        if len(node.storage_nodes) > 0:
-            row.extend(
-                [
-                    str(node.storage_nodes),
-                    str(
-                        [
-                            str(storage_node.routing_edges)
-                            for storage_node in node.storage_nodes
-                        ]
-                    ),
-                    str(
-                        [
-                            str(storage_node.pathing_edges)
-                            for storage_node in node.storage_nodes
-                        ]
-                    ),
-                ]
-            )
-
-        else:
-            row.extend(["", str([str(edge) for edge in node.edges])])
-
-    print(nodes_table)
-
-
 def export_directed_graph(
     nodes: List[DirectedGraphNodeInterface],
     name: str,
+    get_origin_id: Callable[
+        [DirectedGraphEdgeInterface], str
+    ] = lambda edge: edge.origin.id,
+    get_destiny_id: Callable[
+        [DirectedGraphEdgeInterface], str
+    ] = lambda edge: edge.destiny.id,
     edge_label_generador: Callable[
         [DirectedGraphEdgeInterface], str
     ] = lambda edge: str(edge),
@@ -89,8 +61,8 @@ def export_directed_graph(
     for node in nodes:
         for edge in node.edges:
             graph_generator.add_edge(
-                str(edge.origin.id),
-                str(edge.destiny.id),
+                str(get_origin_id(edge)),
+                str(get_destiny_id(edge)),
                 label=edge_label_generador(edge),
             )
 
