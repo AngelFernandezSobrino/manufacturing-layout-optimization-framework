@@ -18,8 +18,11 @@ from . import (
 from model import Vector, Plant, StationModel
 
 
-def create_plant_from_node_with_station_models_used(node: TreeNode):
-    plant = Plant()
+def create_plant_from_node_with_station_models_used(
+    node: TreeNode, system_specification: tools.SystemSpecification
+):
+    grid = system_specification.model.stations.grid
+    plant = Plant(system_specification.model.stations.grid)
     station_models_used = set()
     node_evaluated = node
     while True:
@@ -41,20 +44,18 @@ def get_available_positions(
     plant: Plant,
 ) -> tuple[List[Vector], List[List[int]]]:
     available_Vectors_array: List[Vector] = []
-    available_Vectors_grid: List[List[int]] = [[0 for x in range(5)] for y in range(5)]
+    available_Vectors_grid: List[List[int]] = [
+        [0 for x in range(plant.grid_slots_x)] for y in range(plant.grid_slots_y)
+    ]
 
-    for y in range(1, 5):
-        for x in range(5):
+    for y in range(1, plant.grid_slots_y):
+        for x in range(plant.grid_slots_x):
             if plant.grid[y][x] is None:
                 if (
                     (plant.grid[y - 1][x] is not None)
                     or (x > 0 and plant.grid[y][x - 1] is not None)
                     or (x < 4 and plant.grid[y][x + 1] is not None)
                     or (y < 4 and plant.grid[y + 1][x] is not None)
-                    or (x > 0 and plant.grid[y - 1][x - 1] is not None)
-                    or (x < 4 and plant.grid[y - 1][x + 1] is not None)
-                    or (y < 4 and x > 0 and plant.grid[y + 1][x - 1] is not None)
-                    or (y < 4 and x < 4 and plant.grid[y + 1][x + 1] is not None)
                 ):
                     available_Vectors_grid[y][x] = 1
                     available_Vectors_array.append(Vector(x, y))
@@ -68,8 +69,8 @@ def get_stations_with_transport_vectors(
 
     transport_vectors: List[Vector] = []
 
-    for y in range(5):
-        for x in range(5):
+    for y in range(plant.grid_slots_y):
+        for x in range(plant.grid_slots_x):
             station = plant.grid[y][x]
             if station is None:
                 continue
@@ -173,97 +174,3 @@ def check_performace_v2(
         result += stations_distance
 
     return result
-
-
-"""
-Function to build a visibility graph, with the nodes of all the corners of the obstacles of the plant 
-
-The visibility graph contains all the possible paths between the nodes, and the distance between the nodes
-
-Then, this visibility graph has to be adapted to each transport station. From the center of the transport station, only the nodes that are visible from the center of the transport station are going to be considered for the pathfinding algorithm
-
-"""
-
-
-class VisibilityGraphSelfImplemented:
-    def __init__(self, plant: Plant):
-        self.nodes: List[VisibilityGraphNode] = []
-        self.edges: List[VisibilityGraphEdge] = []
-        self.plant = plant
-
-    def build(self):
-        for y in range(5):
-            for x in range(5):
-                station = self.plant.grid[y][x]
-                if station is None:
-                    continue
-                self.get_vectors_from_station(station, Vector(float(x), float(y)))
-
-    def get_vectors_from_station(self, station: StationModel, position: Vector[float]):
-        if station.obstacles is None:
-            return
-        for obstacle in station.obstacles:
-            north = VisibilityGraphNode(
-                float(obstacle.center.x + obstacle.size.x / 2),
-                float(obstacle.center.y + obstacle.size.y / 2),
-            )
-            south = VisibilityGraphNode(
-                float(obstacle.center.x - obstacle.size.x / 2),
-                float(obstacle.center.y - obstacle.size.y / 2),
-            )
-            east = VisibilityGraphNode(
-                float(obstacle.center.x + obstacle.size.x / 2),
-                float(obstacle.center.y - obstacle.size.y / 2),
-            )
-            west = VisibilityGraphNode(
-                float(obstacle.center.x - obstacle.size.x / 2),
-                float(obstacle.center.y + obstacle.size.y / 2),
-            )
-
-            nodes_list = [north, south, east, west]
-
-            for combination in itertools.permutations(nodes_list, 4):
-                if intersect(
-                    combination[0].position,
-                    combination[1].position,
-                    combination[2].position,
-                    combination[3].position,
-                ):
-                    continue
-                edges_list = [
-                    VisibilityGraphEdge(combination[0], combination[1]),
-                    VisibilityGraphEdge(combination[2], combination[3]),
-                ]
-
-                for edge in edges_list:
-                    if edge not in self.edges:
-                        self.edges.append(edge)
-
-            self.nodes.extend(nodes_list)
-
-
-class VisibilityGraphNode:
-    def __init__(self, x: float, y: float):
-        self.position = Vector(x, y)
-        self.edges: List[VisibilityGraphEdge]
-
-
-class VisibilityGraphEdge:
-    def __init__(self, A: VisibilityGraphNode, B: VisibilityGraphNode):
-        self.nodes = (A, B)
-        self.distance = (A.position - B.position).distance()
-
-    def __eq__(self, __value: object) -> bool:
-        if not isinstance(__value, VisibilityGraphEdge):
-            return False
-        return (
-            self.nodes[0] == __value.nodes[0] and self.nodes[1] == __value.nodes[1]
-        ) or (self.nodes[0] == __value.nodes[1] and self.nodes[1] == __value.nodes[0])
-
-
-def ccw(A: Vector[float], B: Vector[float], C: Vector[float]):
-    return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
-
-
-def intersect(A: Vector[float], B: Vector[float], C: Vector[float], D: Vector[float]):
-    return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)

@@ -107,10 +107,13 @@ import pyvisgraph as vg  # type: ignore
 
 
 class Plant:
-    def __init__(self):
+    def __init__(self, grid: Grid) -> None:
+
+        self.grid_params = grid
 
         self.grid: List[List[Optional[StationModel]]] = [
-            [None for x in range(5)] for y in range(5)
+            [None for x in range(self.grid_params.size.x)]
+            for y in range(self.grid_params.size.y)
         ]
 
         self.vis_graph: vg.VisGraph = vg.VisGraph()
@@ -122,7 +125,9 @@ class Plant:
     def build_visibility_graphs(self):
         self.vis_graph = vg.VisGraph()
         self.poligons: List[List[vg.Point]] = []
-        for x, y in itertools.product(range(5), range(5)):
+        for x, y in itertools.product(
+            range(self.grid_params.size.x), range(self.grid_params.size.y)
+        ):
 
             station = self.grid[y][x]
             if station is None:
@@ -132,26 +137,60 @@ class Plant:
 
             for obstacle in station.obstacles:
                 north = vg.Point(
-                    float(x + obstacle.center.x + obstacle.size.x / 2),
-                    float(y + obstacle.center.y + obstacle.size.y / 2),
+                    float(
+                        x * self.grid_params.measures.x
+                        + obstacle.center.x
+                        + obstacle.size.x / 2
+                    ),
+                    float(
+                        y * self.grid_params.measures.y
+                        + obstacle.center.y
+                        + obstacle.size.y / 2
+                    ),
                 )
                 south = vg.Point(
-                    float(x + obstacle.center.x - obstacle.size.x / 2),
-                    float(y + obstacle.center.y - obstacle.size.y / 2),
+                    float(
+                        x * self.grid_params.measures.x
+                        + obstacle.center.x
+                        - obstacle.size.x / 2
+                    ),
+                    float(
+                        y * self.grid_params.measures.y
+                        + obstacle.center.y
+                        - obstacle.size.y / 2
+                    ),
                 )
                 east = vg.Point(
-                    float(x + obstacle.center.x + obstacle.size.x / 2),
-                    float(y + obstacle.center.y - obstacle.size.y / 2),
+                    float(
+                        x * self.grid_params.measures.x
+                        + obstacle.center.x
+                        + obstacle.size.x / 2
+                    ),
+                    float(
+                        y * self.grid_params.measures.y
+                        + obstacle.center.y
+                        - obstacle.size.y / 2
+                    ),
                 )
                 west = vg.Point(
-                    float(x + obstacle.center.x - obstacle.size.x / 2),
-                    float(y + obstacle.center.y + obstacle.size.y / 2),
+                    float(
+                        x * self.grid_params.measures.x
+                        + obstacle.center.x
+                        - obstacle.size.x / 2
+                    ),
+                    float(
+                        y * self.grid_params.measures.y
+                        + obstacle.center.y
+                        + obstacle.size.y / 2
+                    ),
                 )
                 self.poligons.append([north, east, south, west])
 
         self.vis_graph.build(self.poligons, workers=1, status=False)
 
-        for x, y in itertools.product(range(5), range(5)):
+        for x, y in itertools.product(
+            range(self.grid_params.size.x), range(self.grid_params.size.y)
+        ):
             station = self.grid[y][x]
             if station is None:
                 continue
@@ -189,8 +228,8 @@ class Plant:
 
     def hash(self):
         plant_hash = ""
-        for y in range(5):
-            for x in range(5):
+        for y in range(self.grid_params.size.y):
+            for x in range(self.grid_params.size.x):
                 if self.grid[y][x] is None:
                     continue
                 plant_hash += f"{self.grid[y][x].name}({x},{y})"  # type: ignore
@@ -295,10 +334,19 @@ class Stations:
         self,
         stations_dict: StationsDict,
     ) -> None:
-        self.size = Vector(stations_dict["Size"]["X"], stations_dict["Size"]["Y"])
+        self.grid: Grid = Grid(stations_dict["Grid"])
         self.models: Dict[str, StationModel] = {
             k: StationModel(k, v) for k, v in stations_dict["Models"].items()
         }
+
+
+class Grid:
+
+    def __init__(self, grid_dict: GridDict) -> None:
+        self.measures: Vector[float] = Vector(
+            grid_dict["Measures"]["X"], grid_dict["Measures"]["Y"]
+        )
+        self.size: Vector[int] = Vector(grid_dict["Size"]["X"], grid_dict["Size"]["Y"])
 
 
 class Activity:
@@ -314,8 +362,13 @@ class Activity:
 
 
 class StationsDict(TypedDict):
-    Size: VectorDict[float]
+    Grid: GridDict
     Models: Dict[str, StationModelDict]
+
+
+class GridDict(TypedDict):
+    Size: VectorDict[int]
+    Measures: VectorDict[float]
 
 
 class ActivityDict(TypedDict):

@@ -1,7 +1,12 @@
 Stations:
-  Size:
-    X: 0.8
-    Y: 0.8
+  Grid:
+    Size:
+      X: 5
+      Y: 5
+    Measures:
+      X: 0.8
+      Y: 0.8
+    FixedNode: InOut
   Models:
     InOut:
       Storage:

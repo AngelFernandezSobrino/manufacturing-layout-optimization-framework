@@ -1,11 +1,13 @@
+from ast import Index
 from math import pi
 from re import X
+import textwrap
 import unittest
 import pyvisgraph as vg
 
 import sys
 
-from __init__ import StationModel, StationModelDict, angle_between_two_points
+from __init__ import Grid, StationModel, StationModelDict, angle_between_two_points
 from __init__ import Plant
 
 inout_station_dict: StationModelDict = {
@@ -82,10 +84,19 @@ class TestPointMethods(unittest.TestCase):
             self.assertEqual(result, expected)
 
     def test_plant(self):
-        """Test Plant object functions, it's a big test, should be split in smaller tests."""
         print()
+        print(
+            textwrap.dedent(
+                """
+            --------------------
+            Test Plant object functions, it's a big test, should be split in smaller tests.
+            """
+            )
+        )
         self.longMessage = True
-        plant = Plant()
+        plant = Plant(
+            Grid({"Size": {"X": 5, "Y": 5}, "Measures": {"X": 0.8, "Y": 0.8}})
+        )
 
         plant.grid[0][2] = StationModel("InOut", inout_station_dict)
         plant.grid[1][2] = StationModel("Storage", storage_station_dict)
@@ -94,32 +105,51 @@ class TestPointMethods(unittest.TestCase):
 
         plant.build_visibility_graphs()
 
-        self.assertTrue(plant.vis_graph.graph, "Graph not built")
-        if not plant.vis_graph.graph:
-            self.assertTrue(False, "Graph not built")
+        self.assertIsInstance(plant.vis_graph.graph, vg.Graph, "Graph not built")
+        if plant.vis_graph.graph is None:
             return
-        print(plant.vis_graph.graph.polygons)
-        self.assertTrue(plant.vis_graph.graph.polygons)
-        self.assertTrue(len(plant.vis_graph.graph.polygons))
+        self.assertTrue(len(plant.vis_graph.graph.edges), "No vertices checked")
+        self.assertTrue(len(plant.vis_graph.graph.polygons), "No polygons checked")
 
         visible_points = plant.vis_graph.find_visible(vg.Point(1, 1))
+
+        print("Main graph points: ")
+        for point in plant.vis_graph.graph.graph:
+            print(point)
+
+        print("Press central point: ")
+        print(vg.Point(2, 2))
+        print("Robot central point: ")
+        print(vg.Point(1, 1))
+
+        print("Visible points: ")
+        for point in visible_points:
+            print(point)
 
         self.assertEqual(
             visible_points,
             [vg.Point(2.50, 1.50), vg.Point(1.50, 1.50), vg.Point(1.50, 2.50)],
         )
 
-        self.assertTrue(plant.transport_vis_graphs)
-        self.assertTrue("Robot" in plant.transport_vis_graphs)
-        self.assertTrue(plant.transport_vis_graphs["Robot"].graph)
-
+        self.assertEqual(
+            len(plant.transport_vis_graphs), 1, "No transport graph generated"
+        )
+        self.assertIn("Robot", plant.transport_vis_graphs, "No Robot graph generated")
+        self.assertIsInstance(
+            plant.transport_vis_graphs["Robot"].graph, vg.Graph, "Robot Graph not built"
+        )
         if plant.transport_vis_graphs["Robot"].graph is None:
-            self.assertTrue(False, "Graph not built")
             return
+
+        print("Robot graph poligons: ")
+        for point in plant.transport_vis_graphs["Robot"].graph.graph:
+            print(point)
 
         path = plant.transport_vis_graphs["Robot"].shortest_path(
             vg.Point(2, 0), vg.Point(2, 2)
         )
+
+        print("--------------------")
 
 
 if __name__ == "__main__":
