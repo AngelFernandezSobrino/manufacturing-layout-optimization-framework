@@ -6,94 +6,107 @@ Stations:
     InOut:
       Storage:
         - Type:
-          - Part1
+          - Part: Part1
+            Add: 0
+            Remove: 1
           Place:
-            X: 0.3
-            Y: 0.3
-          Add: 0
-          Remove: 1
+            X: 0.2
+            Y: 0.2
         - Type:
-          - Part2
+          - Part: Part2
+            Add: 0
+            Remove: 1
           Place:
-            X: -0.3
-            Y: 0.3
-          Add: 0
-          Remove: 1
+            X: -0.2
+            Y: 0.2
         - Type:
-          - Part3
+          - Part: Part3
+            Add: 1
+            Remove: 0
           Place:
-            X: 0.3
-            Y: 0.3
-          Add: 1
-          Remove: 0
+            X: 0.2
+            Y: 0.2
 
     PartsStorage:
       Storage:
         - Type:
-          - Part1
+          - Part: Part1
+            Add: 1
+            Remove: 1
           Place:
-            X: 0.3
-            Y: 0.3
-          Add: 1
-          Remove: 1
+            X: 0.2
+            Y: 0.2
         - Type:
-          - Part2
+          - Part: Part2
+            Add: 1
+            Remove: 1
           Place:
-            X: -0.3
-            Y: 0.3
-          Add: 1
-          Remove: 1
+            X: -0.2
+            Y: 0.2
         - Type:
-          - Part3
+          - Part: Part3
+            Add: 1
+            Remove: 1
           Place:
-            X: 0.3
-            Y: -0.3
-          Add: 1
-          Remove: 1
+            X: 0.2
+            Y: -0.2
 
     Robot1:
       Transport:
-        Range: 4
+        Range: 2
         Parts:
           - Part1
           - Part2
           - Part3
-
+      Obstacle:
+        - Center:
+            X: 0.0
+            Y: 0.0
+          Size:
+            X: 0.5
+            Y: 0.5
     Robot2:
       Transport:
-        Range: 4
+        Range: 2
         Parts:
           - Part1
           - Part2
           - Part3
-
+      Obstacle:
+        - Center:
+            X: 0.0
+            Y: 0.0
+          Size:
+            X: 0.5
+            Y: 0.5
     Press:
       Storage:
         - Type:
-          - Part1
+          - Part: Part1
+            Add: 1
+            Remove: 0
+          - Part: Part2
+            Add: 1
+            Remove: 0
+            Requires:
+              - Part 1
+          - Part: Part3
+            Add: 0
+            Remove: 1
           Place:
-            X: 0.3
-            Y: 0.3
-          Add: 1
-          Remove: 0
-        - Type:
-          - Part2
-          Place:
-            X: 0.3
-            Y: 0.3
-          Add: 1
-          Remove: 0
-          Requires:
-            - Part 1
-        - Type:
-          - Part3
-          Place:
-            X: 0.3
-            Y: 0.3
-          Add: 0
-          Remove: 1
+            X: 0.2
+            Y: 0.0
+
       Activities:
         - Activity1
+
+      Obstacle:
+        - Center:
+            X: -0.2
+            Y: 0.0
+          Size:
+            X: 0.2
+            Y: 0.2
 
 Parts:
   Part3:

@@ -84,6 +84,11 @@ class StationModel:
         except:
             self.activities = None
 
+        if "Obstacle" in station_model_dict:
+            self.obstacles = [Obstacle(o) for o in station_model_dict["Obstacle"]]
+        else:
+            self.obstacles = None
+
     def __str__(self) -> str:
         return f"{self.name}"
 
@@ -100,13 +105,30 @@ class Storage:
         self,
         storage_dict: StorageDict,
     ) -> None:
-        self.type: List[str] = storage_dict["Type"]
+        self.type = [
+            StorageType(storage_type_dict) for storage_type_dict in storage_dict["Type"]
+        ]
         self.position: Vector[float] = Vector(
             storage_dict["Place"]["X"], storage_dict["Place"]["Y"]
         )
-        self.add: int = storage_dict["Add"]
-        self.remove: int = storage_dict["Remove"]
-        self.requires: List[str]
+
+
+class StorageType:
+
+    def __init__(self, storage_type_dict: StorageTypeDict) -> None:
+        self.part = storage_type_dict["Part"]
+        self.add: int = storage_type_dict["Add"]
+        self.remove: int = storage_type_dict["Remove"]
+        if "Requires" in storage_type_dict:
+            self.requires: List[str] = storage_type_dict["Requires"]
+        else:
+            self.requires = []
+
+    def __str__(self) -> str:
+        return f"{self.part}{'/Add' if self.add == 1 else ''}{'/Remove' if self.remove == 1 else ''}{f'/{self.requires}' if self.requires else ''}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class Transport:
@@ -117,6 +139,17 @@ class Transport:
     ) -> None:
         self.range: float = transport_dict["Range"]
         self.parts: List[str] = transport_dict["Parts"]
+
+
+class Obstacle:
+
+    def __init__(self, obstacle_dict: ObstacleDict) -> None:
+        self.center: Vector[float] = Vector(
+            obstacle_dict["Center"]["X"], obstacle_dict["Center"]["Y"]
+        )
+        self.size: Vector[float] = Vector(
+            obstacle_dict["Size"]["X"], obstacle_dict["Size"]["Y"]
+        )
 
 
 class Part:
@@ -184,13 +217,24 @@ class StationModelDict(TypedDict):
     Storage: NotRequired[List[StorageDict]]
     Transport: NotRequired[TransportDict]
     Activities: NotRequired[List[str]]
+    Obstacle: NotRequired[List[ObstacleDict]]
+
+
+class ObstacleDict(TypedDict):
+    Center: VectorDict[float]
+    Size: VectorDict[float]
 
 
 class StorageDict(TypedDict):
-    Type: List[str]
+    Type: List[StorageTypeDict]
     Place: VectorDict[float]
+
+
+class StorageTypeDict(TypedDict):
+    Part: str
     Add: int
     Remove: int
+    Requires: NotRequired[List[str]]
 
 
 ModelsDict = Dict[str, StationModelDict]
