@@ -182,7 +182,7 @@ class TreeNode:
         self.position: model.Vector[int] = position
 
     def __str__(self) -> str:
-        return f"{self.station} {self.position}"
+        return f"({self.station}-{self.position})"
 
     def count_leaves(self) -> int:
         if self.next is None:

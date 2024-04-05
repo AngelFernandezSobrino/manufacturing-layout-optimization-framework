@@ -12,7 +12,7 @@ from graph import (
     DirectedGraphNodeInterface,
     StationNode,
 )
-from model import PlantGridType
+from model.plant import Plant
 
 if TYPE_CHECKING:
     from graph.problem import TreeNode
@@ -130,24 +130,6 @@ def add_tree_nodes(
         actual_x += 1
 
     return actual_x
-
-
-def print_plant_grid(plant_grid: PlantGridType, width=15):
-    table = prettytable.PrettyTable()
-    column_names = ["", "0", "1", "2", "3", "4"]
-    table_width: dict[str, int] = {}
-
-    for name in column_names:
-        table_width[name] = width
-
-    table.field_names = column_names
-    table._max_width = table_width
-    table._min_width = table_width
-
-    for row_index, row in enumerate(plant_grid):
-        table.add_row([row_index, *row])
-
-    print(table)
 
 
 def circunstripted_penthagon_coordinates_gen(h, k, r, theta):

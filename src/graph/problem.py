@@ -1,29 +1,39 @@
 from __future__ import annotations
-from dataclasses import dataclass
-import itertools
-from math import sqrt
-import re
-from turtle import distance, st
-from typing import Dict, List, Set
 
 from graph.process import ManufacturingProcessGraph
-from model import Plant, tools
+from model import tools
+from model.plant import Plant
 
 from . import (
     TreeNode,
-    StationNode,
-    RoutingGraphEdge,
 )
 
-from model import Vector, Plant, StationModel
+from model import Vector
+
+
+def get_hash_for_new_node(node: TreeNode, previous_node: TreeNode):
+    previous_node_evaluated = previous_node
+    hash_set: set[str] = set()
+
+    hash_set.add(node.station.name + str(node.position))
+
+    while True:
+        hash_set.add(
+            previous_node_evaluated.station.name + str(previous_node_evaluated.position)
+        )
+        if previous_node_evaluated.previous is None:
+            break
+        previous_node_evaluated = previous_node_evaluated.previous
+
+    return hash_set
 
 
 def create_plant_from_node_with_station_models_used(
     node: TreeNode, system_specification: tools.SystemSpecification
-):
+) -> tuple[Plant, set[str]]:
     grid = system_specification.model.stations.grid
     plant = Plant(system_specification.model.stations.grid)
-    station_models_used = set()
+    station_models_used: set[str] = set()
     node_evaluated = node
     while True:
         plant.grid[node_evaluated.position.y][
@@ -40,37 +50,32 @@ def create_plant_from_node_with_station_models_used(
     return plant, station_models_used
 
 
-def get_available_positions(
-    plant: Plant,
-) -> tuple[List[Vector], List[List[int]]]:
-    available_Vectors_array: List[Vector] = []
-    available_Vectors_grid: List[List[int]] = [
-        [0 for x in range(plant.grid_slots_x)] for y in range(plant.grid_slots_y)
-    ]
+def get_available_positions(plant: Plant) -> list[Vector[int]]:
 
-    for y in range(1, plant.grid_slots_y):
-        for x in range(plant.grid_slots_x):
+    available_positions: list[Vector] = []
+
+    for y in range(1, plant.grid_params.size.y):
+        for x in range(plant.grid_params.size.x):
             if plant.grid[y][x] is None:
                 if (
-                    (plant.grid[y - 1][x] is not None)
+                    (y > 1 and plant.grid[y - 1][x] is not None)
                     or (x > 0 and plant.grid[y][x - 1] is not None)
                     or (x < 4 and plant.grid[y][x + 1] is not None)
                     or (y < 4 and plant.grid[y + 1][x] is not None)
                 ):
-                    available_Vectors_grid[y][x] = 1
-                    available_Vectors_array.append(Vector(x, y))
+                    available_positions.append(Vector(x, y))
 
-    return available_Vectors_array, available_Vectors_grid
+    return available_positions
 
 
 def get_stations_with_transport_vectors(
     plant: Plant,
-) -> List[Vector]:
+) -> list[Vector]:
 
-    transport_vectors: List[Vector] = []
+    transport_vectors: list[Vector] = []
 
-    for y in range(plant.grid_slots_y):
-        for x in range(plant.grid_slots_x):
+    for y in range(plant.grid_params.size.y):
+        for x in range(plant.grid_params.size.x):
             station = plant.grid[y][x]
             if station is None:
                 continue
@@ -113,6 +118,8 @@ def check_configuration_v2(
             for node in graph.station_nodes:
                 if node.model.name == station.name:
                     node.position.set(colIndex, rowIndex)
+
+    plant.build_visibility_graphs()
     """
     There are two possible ways to calculate the performance of the configuration
     Considering that all the edges have to be used, so all the possible paths that the robots can do have to be possible, i.e. all the edges can be used and the distance between robot and all possible nodes have to be under the robot range
@@ -132,7 +139,11 @@ def check_configuration_v2(
         ).distance()
 
         stations_distance = (
-            plant.get_shortest_path_lenght_between_two_points_using_transport()
+            plant.get_shortest_path_lenght_between_two_points_using_transport(
+                edge.transport.position,
+                edge.storage.absolute_position(),
+                edge.transport.model.name,
+            )
         )
 
         if edge.transport.model.transports.range < stations_distance:  # type: ignore

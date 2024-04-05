@@ -235,7 +235,6 @@ if __name__ == "__main__":
     from pathlib import Path
 
     spec = src.model.tools.SystemSpecification()
-    spec.read_model_from_source(Path("./model.yaml"))
 
     flowGraph = ManufacturingProcessGraph(spec.model)
 

@@ -42,11 +42,25 @@ Stations:
             X: 0.2
             Y: 0.2
         - Type:
+          - Part: Part1
+            Add: 1
+            Remove: 1
+          Place:
+            X: 0.3
+            Y: 0.2
+        - Type:
           - Part: Part2
             Add: 1
             Remove: 1
           Place:
             X: -0.2
+            Y: 0.2
+        - Type:
+          - Part: Part2
+            Add: 1
+            Remove: 1
+          Place:
+            X: -0.3
             Y: 0.2
         - Type:
           - Part: Part3
