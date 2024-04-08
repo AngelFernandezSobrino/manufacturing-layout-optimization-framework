@@ -7,7 +7,7 @@ import json
 from math import atan2, cos, sin, sqrt
 from re import S
 from typing import Dict, Generic, List, NotRequired, Optional, TypeVar, TypedDict
-
+import pyvisgraph as vg
 
 IntOrFloat = TypeVar("IntOrFloat", int, float)
 
@@ -88,8 +88,11 @@ class StationModel:
         else:
             self.activities = None
 
-        if "Obstacle" in station_model_dict:
-            self.obstacles = [Obstacle(o) for o in station_model_dict["Obstacle"]]
+        if "Obstacles" in station_model_dict:
+            self.obstacles = [
+                [vg.Point(v["X"], v["Y"]) for v in o]
+                for o in station_model_dict["Obstacles"]
+            ]
         else:
             self.obstacles = None
 
@@ -143,17 +146,6 @@ class Transport:
     ) -> None:
         self.range: float = transport_dict["Range"]
         self.parts: List[str] = transport_dict["Parts"]
-
-
-class Obstacle:
-
-    def __init__(self, obstacle_dict: ObstacleDict) -> None:
-        self.center: Vector[float] = Vector(
-            obstacle_dict["Center"]["X"], obstacle_dict["Center"]["Y"]
-        )
-        self.size: Vector[float] = Vector(
-            obstacle_dict["Size"]["X"], obstacle_dict["Size"]["Y"]
-        )
 
 
 class Part:
@@ -235,12 +227,7 @@ class StationModelDict(TypedDict):
     Storage: NotRequired[List[StorageDict]]
     Transport: NotRequired[TransportDict]
     Activities: NotRequired[List[str]]
-    Obstacle: NotRequired[List[ObstacleDict]]
-
-
-class ObstacleDict(TypedDict):
-    Center: VectorDict[float]
-    Size: VectorDict[float]
+    Obstacles: NotRequired[List[List[VectorDict[float]]]]
 
 
 class StorageDict(TypedDict):

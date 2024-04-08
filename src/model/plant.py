@@ -1,4 +1,5 @@
 import copy
+from dataclasses import dataclass
 import itertools
 from math import atan2, cos, sin, sqrt
 from typing import List, Optional
@@ -18,77 +19,27 @@ class Plant:
             for y in range(self.grid_params.size.y)
         ]
 
-        self.vis_graph: vg.VisGraph = vg.VisGraph()
-
-        # We need to create a custom visibility graph for each transport station in the plant
+        self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
 
         self.transport_vis_graphs: dict[str, vg.VisGraph] = {}
 
     def build_visibility_graphs(self):
-        self.vis_graph = vg.VisGraph()
-        self.poligons: List[List[vg.Point]] = []
+
+        # Compute the poligons that are going to be used to build the visibility graph
         for x, y in itertools.product(
             range(self.grid_params.size.x), range(self.grid_params.size.y)
         ):
 
             station = self.grid[y][x]
+
             if station is None:
                 continue
             if station.obstacles is None:
                 continue
-
-            for obstacle in station.obstacles:
-                north = vg.Point(
-                    float(
-                        x * self.grid_params.measures.x
-                        + obstacle.center.x
-                        + obstacle.size.x / 2
-                    ),
-                    float(
-                        y * self.grid_params.measures.y
-                        + obstacle.center.y
-                        + obstacle.size.y / 2
-                    ),
-                )
-                south = vg.Point(
-                    float(
-                        x * self.grid_params.measures.x
-                        + obstacle.center.x
-                        - obstacle.size.x / 2
-                    ),
-                    float(
-                        y * self.grid_params.measures.y
-                        + obstacle.center.y
-                        - obstacle.size.y / 2
-                    ),
-                )
-                east = vg.Point(
-                    float(
-                        x * self.grid_params.measures.x
-                        + obstacle.center.x
-                        + obstacle.size.x / 2
-                    ),
-                    float(
-                        y * self.grid_params.measures.y
-                        + obstacle.center.y
-                        - obstacle.size.y / 2
-                    ),
-                )
-                west = vg.Point(
-                    float(
-                        x * self.grid_params.measures.x
-                        + obstacle.center.x
-                        - obstacle.size.x / 2
-                    ),
-                    float(
-                        y * self.grid_params.measures.y
-                        + obstacle.center.y
-                        + obstacle.size.y / 2
-                    ),
-                )
-                self.poligons.append([north, east, south, west])
-
-        self.vis_graph.build(self.poligons, workers=1, status=False)
+            if station.transports is None:
+                self.poligons.poligons.extend(station.obstacles)
+            else:
+                self.poligons.robot_poligons[station.name] = station.obstacles
 
         self.print()
 
@@ -106,9 +57,12 @@ class Plant:
     def build_transport_visibility_graph(
         self, station_position: Vector[int], station_name: str
     ):
+
         self.transport_vis_graphs[station_name] = vg.VisGraph()
-        # We are going to find the poligons that are visible from the transport station
-        visible_vertices = self.vis_graph.find_visible(
+
+        # Build a graph
+
+        visible_vertices = self.visibility_graph.find_visible(
             vg.Point(station_position.x, station_position.y)
         )
         new_poligons = copy.deepcopy(self.poligons)
@@ -172,6 +126,12 @@ class Plant:
             table.add_row([row_index, *row])
 
         print(table)
+
+
+@dataclass
+class PlantPoligonsPoints:
+    poligons: list[list[vg.Point]]
+    robot_poligons: dict[str, list[list[vg.Point]]]
 
 
 def angle_between_two_points(point1: vg.Point, point2: vg.Point) -> float:
