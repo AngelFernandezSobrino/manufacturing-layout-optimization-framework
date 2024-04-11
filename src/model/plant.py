@@ -19,11 +19,14 @@ class Plant:
             for y in range(self.grid_params.size.y)
         ]
 
+        self.empty = True
+
         self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
+        self.vis_graphs: dict[str, vg.VisGraph] = {}
 
-        self.transport_vis_graphs: dict[str, vg.VisGraph] = {}
+    def build_vis_graphs(self):
 
-    def build_visibility_graphs(self):
+        assert not self.empty
 
         # Compute the poligons that are going to be used to build the visibility graph
         for x, y in itertools.product(
@@ -41,8 +44,7 @@ class Plant:
             else:
                 self.poligons.robot_poligons[station.name] = station.obstacles
 
-        self.print()
-
+        # Compute the visibility graph for each transport station
         for x, y in itertools.product(
             range(self.grid_params.size.x), range(self.grid_params.size.y)
         ):
@@ -52,38 +54,74 @@ class Plant:
             if station.transports is None:
                 continue
 
-            self.build_transport_visibility_graph(Vector(x, y), station.name)
+            self._build_transport_visibility_graph(Vector(x, y), station.name)
 
-    def build_transport_visibility_graph(
+    def _build_transport_visibility_graph(
         self, station_position: Vector[int], station_name: str
     ):
 
-        self.transport_vis_graphs[station_name] = vg.VisGraph()
+        # Create a visibility graph considering all the poligons except the ones that are associated with that transport station
 
-        # Build a graph
+        visibility_graph = vg.VisGraph()
 
-        visible_vertices = self.visibility_graph.find_visible(
+        visibility_graph.build(
+            [poligon for poligon in self.poligons.poligons]
+            + [
+                poligon
+                for robot_name, poligons in self.poligons.robot_poligons.items()
+                if robot_name != station_name
+                for poligon in poligons
+            ],
+            workers=1,
+            status=False,
+        )
+
+        # Create the robot visibility graph
+        self.vis_graphs[station_name] = vg.VisGraph()
+
+        # Check the vertices that are visible from the transport station in the local visibility graph
+        visible_vertices = visibility_graph.find_visible(
             vg.Point(station_position.x, station_position.y)
         )
-        new_poligons = copy.deepcopy(self.poligons)
-        # To avoid the poligons that are not visible from the transport station to be used, the region behind the poligons has to be increased in size to be sure that any path that goes through these vertices is not going to be used
 
+        new_poligons = copy.deepcopy(self.poligons)
+
+        # To avoid the poligons that are not visible from the transport station to be used, the region behind the poligons has to be increased in size to be sure that any path that goes through these vertices is not going to be used
         # To do that we need to find the angle between the transport station and the vertices of the poligons, and then we will move the vertices in the direction of the angle by a fixed distance of 20 units
 
-        for poligon in new_poligons:
-            for vertex in poligon:
-                if vertex in visible_vertices:
+        for poligon in new_poligons.poligons:
+            for point in poligon:
+                if point in visible_vertices:
                     continue
                 angle = angle_between_two_points(
-                    vg.Point(station_position.x, station_position.y), vertex
+                    station_position.x, station_position.y, point
                 )
-                vertex.x += 20 * cos(angle)
-                vertex.y += 20 * sin(angle)
+                point.x += 20 * cos(angle)
+                point.y += 20 * sin(angle)
 
-        self.transport_vis_graphs[station_name].build(
-            new_poligons, workers=1, status=False
+        for robot_name, poligons in new_poligons.robot_poligons.items():
+            if robot_name == station_name:
+                continue
+            for poligon in poligons:
+                for point in poligon:
+                    if point in visible_vertices:
+                        continue
+                    angle = angle_between_two_points(
+                        station_position.x, station_position.y, point
+                    )
+                    point.x += 20 * cos(angle)
+                    point.y += 20 * sin(angle)
+
+        self.vis_graphs[station_name].build(
+            [poligon for poligon in new_poligons.poligons]
+            + [
+                poligon
+                for robot_name, poligons in new_poligons.robot_poligons.items()
+                for poligon in poligons
+            ],
+            workers=1,
+            status=False,
         )
-        print(self.transport_vis_graphs)
 
     def hash(self):
         plant_hash = ""
@@ -95,19 +133,12 @@ class Plant:
 
         return plant_hash
 
-    def get_path_between_two_points_transport(
+    def get_path_between_two_points_with_transport(
         self, point1: Vector[float], point2: Vector[float], transport_name: str
     ) -> List[vg.Point]:
 
-        return self.transport_vis_graphs[transport_name].shortest_path(
+        return self.vis_graphs[transport_name].shortest_path(
             vg.Point(point1.x, point1.y), vg.Point(point2.x, point2.y)
-        )
-
-    def get_shortest_path_lenght_between_two_points_using_transport(
-        self, point1: Vector[float], point2: Vector[float], transport_name: str
-    ) -> float:
-        return path_distance(
-            self.get_path_between_two_points_transport(point1, point2, transport_name)
         )
 
     def print(self, width=15):
@@ -127,6 +158,9 @@ class Plant:
 
         print(table)
 
+    def populated(self):
+        self.empty = False
+
 
 @dataclass
 class PlantPoligonsPoints:
@@ -134,8 +168,10 @@ class PlantPoligonsPoints:
     robot_poligons: dict[str, list[list[vg.Point]]]
 
 
-def angle_between_two_points(point1: vg.Point, point2: vg.Point) -> float:
-    return atan2(point2.y - point1.y, point2.x - point1.x)
+def angle_between_two_points(
+    point1_x: float, point1_y: float, point2: vg.Point
+) -> float:
+    return atan2(point2.y - point1_y, point2.x - point1_x)
 
 
 def path_distance(path: List[vg.Point]) -> float:

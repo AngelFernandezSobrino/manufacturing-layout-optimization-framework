@@ -1,9 +1,11 @@
+import random
 from typing import Dict
 from graph import TreeNode
 from graph.process import ManufacturingProcessGraph
 from model import StationModel
 
 import graph.problem as graph_problem
+from model.plant import Plant
 from model.tools import SystemSpecification
 
 
@@ -113,3 +115,79 @@ def check_performance_each_leave(
 
 check_performance_each_leave.count_of_checked_configurations = 0
 check_performance_each_leave.other_config_values = []
+
+
+def get_random_plant(system_specification: SystemSpecification):
+
+    plant = Plant(system_specification.model.stations.grid)
+    station_models_used: set[str] = set()
+
+    plant.grid[0][2] = system_specification.model.stations.models["InOut"]
+    station_models_used.add("InOut")
+
+    while True:
+        available_positions = graph_problem.get_available_positions(plant)
+        # Get randome value from available_positions list
+        position = available_positions[random.choice(range(len(available_positions)))]
+        station_model = system_specification.model.stations.models[
+            random.choice(
+                tuple(
+                    system_specification.model.stations.available_models
+                    - station_models_used
+                )
+            )
+        ]
+
+        plant.grid[position.y][position.x] = station_model
+
+        station_models_used.add(station_model.name)
+
+        if station_models_used == system_specification.model.stations.available_models:
+            break
+
+    plant.populated()
+
+    return plant
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    import pyvisgraph as vg
+
+    plant = get_random_plant(
+        SystemSpecification(model_stream=open("./model.yaml", "r"))
+    )
+
+    plant.print()
+
+    plant.build_vis_graphs()
+
+    # plot lines
+
+    edges = plant.vis_graphs["Robot1"].visgraph.get_edges()
+
+    for edge in (
+        plant.vis_graphs["Robot1"].visgraph.get_edges()
+        if plant.vis_graphs["Robot1"].visgraph
+        else []
+    ):
+        print("Ploting edge", edge.p1, edge.p2)
+        plt.plot([edge.p1.x, edge.p2.x], [edge.p1.y, edge.p2.y], color="blue")
+
+    path_x = []
+    path_y = []
+
+    for point in plant.vis_graphs["Robot1"].shortest_path(
+        vg.Point(0, 0), destination=vg.Point(2, 2)
+    ):
+        path_x.append(point.x)
+        path_y.append(point.y)
+
+    print("Plotting path: ", path_x, path_y)
+
+    plt.plot(path_x, path_y, color="blue")
+
+    plt.xlim(0, 5)
+    plt.ylim(0, 5)
+    plt.show()
+    plt.ion()

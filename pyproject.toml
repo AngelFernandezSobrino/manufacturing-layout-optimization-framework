@@ -16,6 +16,8 @@ pyvisgraph = "^0.2.1"
 tqdm = "^4.66.2"
 cython = "^3.0.9"
 svg-py = "^1.4.3"
+folium = "^0.16.0"
+matplotlib = "^3.8.4"
 
 [tool.black]
 line-length = 88

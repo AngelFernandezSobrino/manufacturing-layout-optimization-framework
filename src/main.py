@@ -1,7 +1,5 @@
 from io import TextIOWrapper
-from pathlib import Path
 import sys
-from typing import Dict, List
 
 sys.path.append("./src/")
 sys.path.append("./")
@@ -10,7 +8,7 @@ import model
 import outputs
 from graph import TreeNode
 from graph.process import ManufacturingProcessGraph
-from model import StationModel, Vector
+from model import Vector
 
 from graph import problem as graph_problem
 from model import tools as model_tools
@@ -97,7 +95,7 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
             status["best_performance_node"], spec
         )
 
-        outputs.print_plant_grid(plant_grid)
+        plant_grid.print()
 
         print("Best performance ratio: " + str(status["best_performance_ratio"]))
         print("Best performance node: " + str(status["best_performance_node"]))

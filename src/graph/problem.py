@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from graph.process import ManufacturingProcessGraph
 from model import tools
-from model.plant import Plant
+from model.plant import Plant, path_distance
 
 from . import (
     TreeNode,
@@ -58,7 +58,7 @@ def get_available_positions(plant: Plant) -> list[Vector[int]]:
         for x in range(plant.grid_params.size.x):
             if plant.grid[y][x] is None:
                 if (
-                    (y > 1 and plant.grid[y - 1][x] is not None)
+                    (y > 0 and plant.grid[y - 1][x] is not None)
                     or (x > 0 and plant.grid[y][x - 1] is not None)
                     or (x < 4 and plant.grid[y][x + 1] is not None)
                     or (y < 4 and plant.grid[y + 1][x] is not None)
@@ -119,7 +119,7 @@ def check_configuration_v2(
                 if node.model.name == station.name:
                     node.position.set(colIndex, rowIndex)
 
-    plant.build_visibility_graphs()
+    plant.build_vis_graphs()
     """
     There are two possible ways to calculate the performance of the configuration
     Considering that all the edges have to be used, so all the possible paths that the robots can do have to be possible, i.e. all the edges can be used and the distance between robot and all possible nodes have to be under the robot range
@@ -138,8 +138,8 @@ def check_configuration_v2(
             edge.transport.position - edge.storage.absolute_position()
         ).distance()
 
-        stations_distance = (
-            plant.get_shortest_path_lenght_between_two_points_using_transport(
+        stations_distance = path_distance(
+            plant.get_path_between_two_points_with_transport(
                 edge.transport.position,
                 edge.storage.absolute_position(),
                 edge.transport.model.name,

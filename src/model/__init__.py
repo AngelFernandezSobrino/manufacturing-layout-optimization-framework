@@ -169,6 +169,7 @@ class Stations:
         self.models: Dict[str, StationModel] = {
             k: StationModel(k, v) for k, v in stations_dict["Models"].items()
         }
+        self.available_models = set(self.models.keys())
 
 
 class Grid:
