@@ -9,10 +9,11 @@ import prettytable
 import pyvisgraph as vg
 
 from model import Grid, StationModel, StationNameType, Vector
+from model import GridParams, StationModel, StationNameType, Vector
 
 
 class Plant:
-    def __init__(self, grid: Grid) -> None:
+    def __init__(self, grid: GridParams) -> None:
 
         self.grid_params = grid
 

@@ -110,6 +110,12 @@ class StationModel:
     def toJSON(self):
         return json.dumps(self)
 
+    def get_absolute_obstacles(self, origin: Vector[float]) -> List[List[vg.Point]]:
+        return [
+            [vg.Point(v.x + origin.x, v.y + origin.y) for v in o]
+            for o in self.obstacles  # type: ignore
+        ]
+
 
 class Storage:
 
@@ -170,19 +176,20 @@ class Stations:
         self,
         stations_dict: StationsDict,
     ) -> None:
-        self.grid: Grid = Grid(stations_dict["Grid"])
+        self.grid: GridParams = GridParams(stations_dict["Grid"])
         self.models: Dict[StationNameType, StationModel] = {
             k: StationModel(k, v) for k, v in stations_dict["Models"].items()
         }
         self.available_models = set(self.models.keys())
 
 
-class Grid:
+class GridParams:
 
-    def __init__(self, grid_dict: GridDict) -> None:
+    def __init__(self, grid_dict: GridParamsDict) -> None:
         self.measures: Vector[float] = Vector(
             grid_dict["Measures"]["X"], grid_dict["Measures"]["Y"]
         )
+        self.half_measures = Vector(self.measures.x / 2, self.measures.y / 2)
         self.size: Vector[int] = Vector(grid_dict["Size"]["X"], grid_dict["Size"]["Y"])
 
 
@@ -199,11 +206,11 @@ class Activity:
 
 
 class StationsDict(TypedDict):
-    Grid: GridDict
+    Grid: GridParamsDict
     Models: Dict[str, StationModelDict]
 
 
-class GridDict(TypedDict):
+class GridParamsDict(TypedDict):
     Size: VectorDict[int]
     Measures: VectorDict[float]
 

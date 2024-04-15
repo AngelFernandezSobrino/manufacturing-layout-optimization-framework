@@ -3,7 +3,7 @@ import textwrap
 import unittest
 import pyvisgraph as vg
 
-from __init__ import Grid, StationModel, StationModelDict
+from __init__ import GridParams, StationModel, StationModelDict
 from model.plant import Plant, angle_between_two_points
 
 
@@ -107,7 +107,7 @@ class TestPointMethods(unittest.TestCase):
         )
         self.longMessage = True
         plant = Plant(
-            Grid({"Size": {"X": 5, "Y": 5}, "Measures": {"X": 0.8, "Y": 0.8}})
+            GridParams({"Size": {"X": 5, "Y": 5}, "Measures": {"X": 0.8, "Y": 0.8}})
         )
 
         plant.grid[0][2] = StationModel("InOut", inout_station_dict)
