@@ -3,10 +3,12 @@ from dataclasses import dataclass
 import itertools
 from math import atan2, cos, sin, sqrt
 from typing import List, Optional
+import matplotlib
+from matplotlib.figure import Figure
 import prettytable
 import pyvisgraph as vg
 
-from model import Grid, StationModel, Vector
+from model import Grid, StationModel, StationNameType, Vector
 
 
 class Plant:
@@ -22,7 +24,7 @@ class Plant:
         self.empty = True
 
         self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
-        self.vis_graphs: dict[str, vg.VisGraph] = {}
+        self.vis_graphs: dict[StationNameType, vg.VisGraph] = {}
 
     def build_vis_graphs(self):
 
@@ -160,6 +162,45 @@ class Plant:
 
     def populated(self):
         self.empty = False
+
+    def plot_plant_graph(self):
+        import matplotlib.pyplot as plt
+        import matplotlib.axes
+        import pyvisgraph as vg
+
+        axes_dict: dict[StationNameType, matplotlib.axes.Axes] = {
+            station_name: plt.axes() for station_name in self.vis_graphs.keys()
+        }
+
+        for (transport_station_name, vis_graph), axes in zip(
+            self.vis_graphs.items(), axes_dict.values()
+        ):
+            if vis_graph.graph is None or vis_graph.visgraph is None:
+                continue
+
+            for edge in vis_graph.visgraph.get_edges():
+                print("Ploting edge", edge.p1, edge.p2)
+                plt.plot([edge.p1.x, edge.p2.x], [edge.p1.y, edge.p2.y], color="blue")
+
+            path_x = []
+            path_y = []
+
+            for point in vis_graph.shortest_path(
+                vg.Point(0, 0), destination=vg.Point(2, 2)
+            ):
+                path_x.append(point.x)
+                path_y.append(point.y)
+
+            print("Plotting path: ", path_x, path_y)
+
+            assert isinstance(axes, matplotlib.axes.Axes)
+
+            axes.plot(path_x, path_y, color="blue")
+kraken
+            axes.set_xlim(0, 5)
+            axes.set_ylim(0, 5)
+
+        return axes_dict
 
 
 @dataclass

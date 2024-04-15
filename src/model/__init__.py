@@ -68,10 +68,15 @@ class ModelSpecification:
         }
 
 
+StationNameType = str
+
+
 class StationModel:
 
-    def __init__(self, name: str, station_model_dict: StationModelDict) -> None:
-        self.name: str = name
+    def __init__(
+        self, name: StationNameType, station_model_dict: StationModelDict
+    ) -> None:
+        self.name = name
 
         if "Storage" in station_model_dict:
             self.storages = [Storage(s) for s in station_model_dict["Storage"]]
@@ -166,7 +171,7 @@ class Stations:
         stations_dict: StationsDict,
     ) -> None:
         self.grid: Grid = Grid(stations_dict["Grid"])
-        self.models: Dict[str, StationModel] = {
+        self.models: Dict[StationNameType, StationModel] = {
             k: StationModel(k, v) for k, v in stations_dict["Models"].items()
         }
         self.available_models = set(self.models.keys())

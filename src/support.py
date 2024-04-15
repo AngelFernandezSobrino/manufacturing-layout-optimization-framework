@@ -162,32 +162,7 @@ if __name__ == "__main__":
 
     plant.build_vis_graphs()
 
-    # plot lines
+    figures = plant.plot_plant_graph()
 
-    edges = plant.vis_graphs["Robot1"].visgraph.get_edges()
-
-    for edge in (
-        plant.vis_graphs["Robot1"].visgraph.get_edges()
-        if plant.vis_graphs["Robot1"].visgraph
-        else []
-    ):
-        print("Ploting edge", edge.p1, edge.p2)
-        plt.plot([edge.p1.x, edge.p2.x], [edge.p1.y, edge.p2.y], color="blue")
-
-    path_x = []
-    path_y = []
-
-    for point in plant.vis_graphs["Robot1"].shortest_path(
-        vg.Point(0, 0), destination=vg.Point(2, 2)
-    ):
-        path_x.append(point.x)
-        path_y.append(point.y)
-
-    print("Plotting path: ", path_x, path_y)
-
-    plt.plot(path_x, path_y, color="blue")
-
-    plt.xlim(0, 5)
-    plt.ylim(0, 5)
-    plt.show()
-    plt.ion()
+    for figure in figures.values():
+        plt.show()
