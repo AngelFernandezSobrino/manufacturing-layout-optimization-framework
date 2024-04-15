@@ -11,6 +11,52 @@ import pyvisgraph as vg
 from model import Grid, StationModel, StationNameType, Vector
 from model import GridParams, StationModel, StationNameType, Vector
 
+"""Plant description
+
+Coordinates
+
+    ┌────► x 
+    │        
+    │        
+    ▼        
+    y        
+
+Station coordinates
+    
+    ┌───────┐ ──▲        
+    │       │   │        
+    │       │   │x length
+    │       │   │        
+    └───────┘ ──▼        
+                        
+    │       │            
+    ◄───────►            
+    y length           
+
+    ───────► x 
+    0,0         
+    │  ┌───────┐  
+    │  │       │  
+    │  │       │  
+    │  │       │  
+    ▼  └───────┘  
+    y             
+
+Grid coordinates
+
+    0,0 ───────► x
+      ┌──────┬──────┬──────┐ 
+    │ │      │      │      │ 
+    │ │ 0,0  │ 1,0  │ 2,0  │ 
+    │ ├──────┼──────┼──────┤ 
+    │ │      │      │      │ 
+    │ │ 0,1  │ 1,1  │ 2,1  │ 
+    ▼ ├──────┼──────┼──────┤ 
+    y │      │      │      │ 
+      │ 0,2  │ 1,2  │ 2,2  │ 
+      └──────┴──────┴──────┘ 
+"""
+
 
 class Plant:
     def __init__(self, grid: GridParams) -> None:
