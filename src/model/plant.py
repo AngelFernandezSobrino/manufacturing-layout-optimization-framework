@@ -8,7 +8,9 @@ from matplotlib.figure import Figure
 import prettytable
 import pyvisgraph as vg
 
-from model import Grid, StationModel, StationNameType, Vector
+import shapely
+import shapely.ops
+
 from model import GridParams, StationModel, StationNameType, Vector
 
 """Plant description
@@ -73,6 +75,18 @@ class Plant:
         self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
         self.vis_graphs: dict[StationNameType, vg.VisGraph] = {}
 
+    def search_by_name(self, station_name: StationNameType):
+        for x, y in itertools.product(
+            range(self.grid_params.size.x), range(self.grid_params.size.y)
+        ):
+            if self.grid[y][x] is None:
+                continue
+
+            if self.grid[y][x].name == station_name:
+                return Vector(x, y)
+
+        raise ValueError(f"Station {station_name} not found")
+
     def build_vis_graphs(self):
 
         assert not self.empty
@@ -89,9 +103,20 @@ class Plant:
             if station.obstacles is None:
                 continue
             if station.transports is None:
-                self.poligons.poligons.extend(station.obstacles)
+                self.poligons.normal.extend(
+                    station.get_absolute_obstacles(
+                        Vector(
+                            x * self.grid_params.measures.x,
+                            y * self.grid_params.measures.y,
+                        )
+                    )
+                )
             else:
-                self.poligons.robot_poligons[station.name] = station.obstacles
+                self.poligons.robot[station.name] = station.get_absolute_obstacles(
+                    Vector(
+                        x * self.grid_params.measures.x, y * self.grid_params.measures.y
+                    )
+                )
 
         # Compute the visibility graph for each transport station
         for x, y in itertools.product(
@@ -103,71 +128,109 @@ class Plant:
             if station.transports is None:
                 continue
 
-            self._build_transport_visibility_graph(Vector(x, y), station.name)
+            self._build_transport_visibility_graph(
+                Vector(
+                    self.grid_params.half_measures.x + x * self.grid_params.measures.x,
+                    self.grid_params.half_measures.y + y * self.grid_params.measures.y,
+                ),
+                station.name,
+            )
 
     def _build_transport_visibility_graph(
-        self, station_position: Vector[int], station_name: str
+        self, station_position: Vector[float], station_name: str
     ):
-
-        # Create a visibility graph considering all the poligons except the ones that are associated with that transport station
-
-        visibility_graph = vg.VisGraph()
-
-        visibility_graph.build(
-            [poligon for poligon in self.poligons.poligons]
-            + [
-                poligon
-                for robot_name, poligons in self.poligons.robot_poligons.items()
-                if robot_name != station_name
-                for poligon in poligons
-            ],
-            workers=1,
-            status=False,
-        )
 
         # Create the robot visibility graph
         self.vis_graphs[station_name] = vg.VisGraph()
 
-        # Check the vertices that are visible from the transport station in the local visibility graph
-        visible_vertices = visibility_graph.find_visible(
-            vg.Point(station_position.x, station_position.y)
-        )
+        all_other_poligons: list[list[vg.Point]] = [p for p in self.poligons.normal] + [
+            p
+            for poligon_station_name, poligons in self.poligons.robot.items()
+            for p in poligons
+            if poligon_station_name != station_name
+        ]
 
-        new_poligons = copy.deepcopy(self.poligons)
+        visibility_graph = vg.VisGraph()
+        visible_points: list[vg.Point] = []
+        for p in all_other_poligons:
+            visibility_graph.build([p], workers=1, status=False)
+            visible_points.extend(
+                visibility_graph.find_visible(
+                    vg.Point(station_position.x, station_position.y)
+                )
+            )
 
         # To avoid the poligons that are not visible from the transport station to be used, the region behind the poligons has to be increased in size to be sure that any path that goes through these vertices is not going to be used
         # To do that we need to find the angle between the transport station and the vertices of the poligons, and then we will move the vertices in the direction of the angle by a fixed distance of 20 units
 
-        for poligon in new_poligons.poligons:
-            for point in poligon:
-                if point in visible_vertices:
-                    continue
-                angle = angle_between_two_points(
-                    station_position.x, station_position.y, point
-                )
-                point.x += 20 * cos(angle)
-                point.y += 20 * sin(angle)
+        final_poligons: list[list[vg.Point]] = []
 
-        for robot_name, poligons in new_poligons.robot_poligons.items():
-            if robot_name == station_name:
-                continue
-            for poligon in poligons:
-                for point in poligon:
-                    if point in visible_vertices:
-                        continue
-                    angle = angle_between_two_points(
-                        station_position.x, station_position.y, point
-                    )
-                    point.x += 20 * cos(angle)
-                    point.y += 20 * sin(angle)
+        for poligon in all_other_poligons:
+            new_poligon: list[vg.Point] = []
+            final_poligons.append(new_poligon)
+            for index, point in enumerate(poligon):
+                last = index - 1 if index > 0 else len(poligon) - 1
+                next = index + 1 if index < len(poligon) - 1 else 0
+
+                if point in visible_points:
+                    next_not_visible = poligon[next] not in visible_points
+                    last_not_visible = poligon[last] not in visible_points
+                    if next_not_visible:
+                        angle = angle_between_two_points(
+                            station_position.x, station_position.y, point
+                        )
+                        new_poligon.append(point)
+                        new_poligon.append(
+                            vg.Point(
+                                point.x + 20 * cos(angle), point.y + 20 * sin(angle)
+                            )
+                        )
+                    elif last_not_visible:
+                        angle = angle_between_two_points(
+                            station_position.x, station_position.y, point
+                        )
+                        new_poligon.append(
+                            vg.Point(
+                                point.x + 20 * cos(angle), point.y + 20 * sin(angle)
+                            )
+                        )
+                        new_poligon.append(point)
+                    else:
+                        new_poligon.append(point)
+
+        # Now we have to look for intersections between poligons, and then merge those poligons
+
+        shapely_poligons = [
+            shapely.Polygon([(point.x, point.y) for point in poligon])
+            for poligon in final_poligons
+        ]
+
+        # Convert shapely polygons to a list[list[vg.Point]]
+
+        shapely_poligons_union = shapely.ops.unary_union(shapely_poligons)
+
+        if isinstance(shapely_poligons_union, shapely.Polygon):
+            print("Overlaped stuff")
+            shapely_poligons_union = shapely.MultiPolygon([shapely_poligons_union])
+
+        new_poligons = [
+            [vg.Point(x, y) for x, y in shapely_poligon.exterior.coords]
+            for shapely_poligon in shapely_poligons_union.geoms
+        ]
+        # Print some data of the current graph that is being build
+
+        # print("Visibility graph being build ---- ")
+
+        # print("Graph name: ", station_name)
+        # print("Station position: ", station_position)
+        # print("All poligons: ", self.poligons.normal)
+        # print("All robot poligons: ", self.poligons.robot)
+        # print("Visible vertices: ", visible_vertices)
+        # print("Poligons: ", new_poligons.normal)
+        # print("Robot poligons: ", new_poligons.robot)
 
         self.vis_graphs[station_name].build(
-            [poligon for poligon in new_poligons.poligons]
-            + [
-                poligon
-                for robot_name, poligons in new_poligons.robot_poligons.items()
-                for poligon in poligons
-            ],
+            new_poligons,
             workers=1,
             status=False,
         )
@@ -213,11 +276,52 @@ class Plant:
     def plot_plant_graph(self):
         import matplotlib.pyplot as plt
         import matplotlib.axes
+        import matplotlib.ticker
         import pyvisgraph as vg
 
+        visibility_graph = vg.VisGraph()
+
+        all_poligons = [poligon for poligon in self.poligons.normal] + [
+            poligon
+            for robot_name, poligons in self.poligons.robot.items()
+            for poligon in poligons
+        ]
+
+        visibility_graph.build(
+            all_poligons,
+            workers=1,
+            status=False,
+        )
+
+        # Create matplotlib axes without figure
+
+        fig = plt.figure()
+
+        vis_axes = fig.add_subplot(1, len(self.vis_graphs) + 1, 1)
+
         axes_dict: dict[StationNameType, matplotlib.axes.Axes] = {
-            station_name: plt.axes() for station_name in self.vis_graphs.keys()
+            station_name: fig.add_subplot(1, len(self.vis_graphs) + 1, index + 2)
+            for index, station_name in enumerate(self.vis_graphs)
         }
+
+        if visibility_graph.graph is not None:
+            for edge in visibility_graph.graph.get_edges():
+                vis_axes.plot(
+                    [edge.p1.x, edge.p2.x], [edge.p1.y, edge.p2.y], color="blue"
+                )
+
+        vis_axes.set_aspect("equal")
+        vis_axes.set_xlim(0, self.grid_params.measures.x * self.grid_params.size.x)
+        vis_axes.set_ylim(0, self.grid_params.measures.y * self.grid_params.size.y)
+        vis_axes.xaxis.set_major_locator(
+            matplotlib.ticker.MultipleLocator(self.grid_params.measures.x)
+        )
+        vis_axes.yaxis.set_major_locator(
+            matplotlib.ticker.MultipleLocator(self.grid_params.measures.y)
+        )
+        vis_axes.invert_yaxis()
+        vis_axes.grid(True, which="major", linestyle="-", linewidth=0.5)
+        vis_axes.grid(True, which="minor", linestyle=":", linewidth=0.2)
 
         for (transport_station_name, vis_graph), axes in zip(
             self.vis_graphs.items(), axes_dict.values()
@@ -225,35 +329,42 @@ class Plant:
             if vis_graph.graph is None or vis_graph.visgraph is None:
                 continue
 
-            for edge in vis_graph.visgraph.get_edges():
-                print("Ploting edge", edge.p1, edge.p2)
-                plt.plot([edge.p1.x, edge.p2.x], [edge.p1.y, edge.p2.y], color="blue")
+            for edge in vis_graph.graph.get_edges():
+                axes.plot([edge.p1.x, edge.p2.x], [edge.p1.y, edge.p2.y], color="blue")
 
-            path_x = []
-            path_y = []
+            # Plot a point in axes representing the transport station position
+            # Get transport station position
+            transport_station_position = self.search_by_name(transport_station_name)
 
-            for point in vis_graph.shortest_path(
-                vg.Point(0, 0), destination=vg.Point(2, 2)
-            ):
-                path_x.append(point.x)
-                path_y.append(point.y)
+            axes.plot(
+                self.grid_params.half_measures.x
+                + transport_station_position.x * self.grid_params.measures.x,
+                self.grid_params.half_measures.y
+                + transport_station_position.y * self.grid_params.measures.y,
+                "ro",
+            )
 
-            print("Plotting path: ", path_x, path_y)
+            axes.set_aspect("equal")
 
-            assert isinstance(axes, matplotlib.axes.Axes)
+            axes.set_xlim(0, self.grid_params.measures.x * self.grid_params.size.x)
+            axes.set_ylim(0, self.grid_params.measures.y * self.grid_params.size.y)
+            axes.xaxis.set_major_locator(
+                matplotlib.ticker.MultipleLocator(self.grid_params.measures.x)
+            )
+            axes.yaxis.set_major_locator(
+                matplotlib.ticker.MultipleLocator(self.grid_params.measures.y)
+            )
+            axes.invert_yaxis()
+            axes.grid(True, which="major", linestyle="-", linewidth=0.5)
+            axes.grid(True, which="minor", linestyle=":", linewidth=0.2)
 
-            axes.plot(path_x, path_y, color="blue")
-kraken
-            axes.set_xlim(0, 5)
-            axes.set_ylim(0, 5)
-
-        return axes_dict
+        return fig, axes_dict, vis_axes
 
 
 @dataclass
 class PlantPoligonsPoints:
-    poligons: list[list[vg.Point]]
-    robot_poligons: dict[str, list[list[vg.Point]]]
+    normal: list[list[vg.Point]]
+    robot: dict[str, list[list[vg.Point]]]
 
 
 def angle_between_two_points(

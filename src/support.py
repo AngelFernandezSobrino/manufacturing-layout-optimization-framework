@@ -152,6 +152,8 @@ def get_random_plant(system_specification: SystemSpecification):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    import matplotlib.axes
+    import matplotlib
     import pyvisgraph as vg
 
     plant = get_random_plant(
@@ -162,7 +164,20 @@ if __name__ == "__main__":
 
     plant.build_vis_graphs()
 
-    figures = plant.plot_plant_graph()
+    fig, axes_dict, vis_axes = plant.plot_plant_graph()
 
-    for figure in figures.values():
-        plt.show()
+    for station_name, axes in axes_dict.items():
+        path_x = []
+        path_y = []
+
+        for point in plant.vis_graphs[station_name].shortest_path(
+            vg.Point(0, 0), destination=vg.Point(2, 2)
+        ):
+            path_x.append(point.x)
+            path_y.append(point.y)
+
+        axes.plot(path_x, path_y, color="red")
+
+    mngr = plt.get_current_fig_manager()
+    mngr.window.attributes("-zoomed", True)
+    plt.show()
