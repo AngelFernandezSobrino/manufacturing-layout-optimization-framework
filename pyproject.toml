@@ -18,6 +18,7 @@ cython = "^3.0.9"
 svg-py = "^1.4.3"
 folium = "^0.16.0"
 matplotlib = "^3.8.4"
+shapely = "^2.0.3"
 
 [tool.black]
 line-length = 88
