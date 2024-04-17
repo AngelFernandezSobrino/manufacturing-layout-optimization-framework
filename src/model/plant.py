@@ -2,6 +2,7 @@ import copy
 from dataclasses import dataclass
 import itertools
 from math import atan2, cos, sin, sqrt
+from turtle import pos
 from typing import List, Optional
 import matplotlib
 from matplotlib.figure import Figure
@@ -70,10 +71,22 @@ class Plant:
             for y in range(self.grid_params.size.y)
         ]
 
-        self.empty = True
+        self.not_ready = True
 
         self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
         self.vis_graphs: dict[StationNameType, vg.VisGraph] = {}
+
+    def set_location(self, position: Vector[int], station: StationModel):
+        self.grid[position.y][position.x] = station
+
+    def get_location(self, position: Vector[int]) -> Optional[StationModel]:
+        return self.grid[position.y][position.x]
+
+    def get_location_coordinates(self, x: int, y: int) -> Optional[StationModel]:
+        return self.grid[y][x]
+
+    def ready(self):
+        self.not_ready = False
 
     def search_by_name(self, station_name: StationNameType):
         for x, y in itertools.product(
@@ -89,7 +102,7 @@ class Plant:
 
     def build_vis_graphs(self):
 
-        assert not self.empty
+        assert not self.not_ready
 
         # Compute the poligons that are going to be used to build the visibility graph
         for x, y in itertools.product(
@@ -140,9 +153,9 @@ class Plant:
         self, station_position: Vector[float], station_name: str
     ):
 
-        # Create the robot visibility graph
         self.vis_graphs[station_name] = vg.VisGraph()
 
+        # List of all other poligons that are not from the current transport station
         all_other_poligons: list[list[vg.Point]] = [p for p in self.poligons.normal] + [
             p
             for poligon_station_name, poligons in self.poligons.robot.items()
@@ -150,8 +163,13 @@ class Plant:
             if poligon_station_name != station_name
         ]
 
+        # Visibility graph that will be used to find the visible vertices from the transport station
         visibility_graph = vg.VisGraph()
+
+        # Visible vertices from the transport station repo
         visible_points: list[vg.Point] = []
+
+        # Find the visible vertices from the transport station for each of the poligons independently
         for p in all_other_poligons:
             visibility_graph.build([p], workers=1, status=False)
             visible_points.extend(
@@ -163,6 +181,7 @@ class Plant:
         # To avoid the poligons that are not visible from the transport station to be used, the region behind the poligons has to be increased in size to be sure that any path that goes through these vertices is not going to be used
         # To do that we need to find the angle between the transport station and the vertices of the poligons, and then we will move the vertices in the direction of the angle by a fixed distance of 20 units
 
+        # Theses poligons are the same than all other poligons, but with the vertices that are not visible from the transport station moved to the direction of the angle between the transport station and the vertex
         final_poligons: list[list[vg.Point]] = []
 
         for poligon in all_other_poligons:
@@ -198,42 +217,53 @@ class Plant:
                     else:
                         new_poligon.append(point)
 
-        # Now we have to look for intersections between poligons, and then merge those poligons
-
+        # These poligons could now intersect, so we have to merge them
+        # First we have to convert them to shapely poligons
         shapely_poligons = [
             shapely.Polygon([(point.x, point.y) for point in poligon])
             for poligon in final_poligons
         ]
 
-        # Convert shapely polygons to a list[list[vg.Point]]
+        shapely_poligons_union = shapely.union_all(shapely_poligons, grid_size=0.1)
 
-        shapely_poligons_union = shapely.ops.unary_union(shapely_poligons)
-
+        # Once the poligons are merged, we have to convert them back to the format that the visibility graph can use
+        # If the merge process returns only one poligon we will convert it to a multipoligon (just and array of poligons), to simplify the conversion later.
         if isinstance(shapely_poligons_union, shapely.Polygon):
-            print("Overlaped stuff")
+            # print("Overlaped stuff")
             shapely_poligons_union = shapely.MultiPolygon([shapely_poligons_union])
 
         new_poligons = [
             [vg.Point(x, y) for x, y in shapely_poligon.exterior.coords]
             for shapely_poligon in shapely_poligons_union.geoms
         ]
-        # Print some data of the current graph that is being build
 
+        # We are going to remove the last point of each poligon, as it is the same as the first point
+        for poligon in new_poligons:
+            poligon.pop()
+
+        # Print some data of the current graph that is being build
+        # print()
+        # print()
         # print("Visibility graph being build ---- ")
 
         # print("Graph name: ", station_name)
         # print("Station position: ", station_position)
-        # print("All poligons: ", self.poligons.normal)
-        # print("All robot poligons: ", self.poligons.robot)
-        # print("Visible vertices: ", visible_vertices)
-        # print("Poligons: ", new_poligons.normal)
-        # print("Robot poligons: ", new_poligons.robot)
+        # print("All poligons: ")
+        # for poligon in self.poligons.normal:
+        #     print(poligon)
 
-        self.vis_graphs[station_name].build(
-            new_poligons,
-            workers=1,
-            status=False,
-        )
+        # print("All robot poligons: ")
+        # for robot_name, poligons in self.poligons.robot.items():
+        #     print(robot_name)
+        #     for poligon in poligons:
+        #         print(poligon)
+
+        # print("Visible point: ", visible_points)
+        # print("New Poligons: ")
+        # for poligon in new_poligons:
+        #     print(poligon)
+
+        self.vis_graphs[station_name].build(new_poligons, workers=1, status=False)
 
     def hash(self):
         plant_hash = ""
@@ -253,6 +283,20 @@ class Plant:
             vg.Point(point1.x, point1.y), vg.Point(point2.x, point2.y)
         )
 
+    def get_config_set(self):
+
+        hash_set: set[str] = set()
+
+        for x, y in itertools.product(
+            range(self.grid_params.size.x), range(self.grid_params.size.y)
+        ):
+            if self.grid[y][x] is None:
+                continue
+
+            hash_set.add(f"{self.grid[y][x].name}({x},{y})")
+
+        return hash_set
+
     def print(self, width=15):
         table = prettytable.PrettyTable()
         column_names = ["", "0", "1", "2", "3", "4"]
@@ -269,9 +313,6 @@ class Plant:
             table.add_row([row_index, *row])
 
         print(table)
-
-    def populated(self):
-        self.empty = False
 
     def plot_plant_graph(self):
         import matplotlib.pyplot as plt

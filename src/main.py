@@ -54,9 +54,18 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
 
     first_node = TreeNode(spec.model.stations.models["InOut"], Vector(2, 0), None)
 
-    hash_repository: set[set[str]] = set()
+    populate_next_nodes(first_node, spec.model.stations.models, spec)
 
-    populate_next_nodes(first_node, spec.model.stations.models, spec, hash_repository)
+    print(
+        f"Size of the configs repo: {sys.getsizeof(populate_next_nodes.config_repository) / 1000 / 1000} MB"
+    )
+
+    print("Evaluated nodes: " + str(populate_next_nodes.evaluated_nodes))
+    print("Configurations generated: " + str(populate_next_nodes.valid_nodes))
+    print(
+        "Discarded configurations: "
+        + str(populate_next_nodes.evaluated_nodes - populate_next_nodes.valid_nodes)
+    )
 
     check_configuration_each_leave(first_node, flow_graph, spec)
 
@@ -74,8 +83,13 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
         "Rate of valid configurations: "
         + str(
             check_configuration_each_leave.count_of_valid_configurations
-            / check_configuration_each_leave.count_of_total_configurations
+            / (check_configuration_each_leave.count_of_total_configurations + 1)
         )
+    )
+
+    print(
+        "Count of error configurations: "
+        + str(check_configuration_each_leave.count_error_configurations)
     )
 
     # Print graph again

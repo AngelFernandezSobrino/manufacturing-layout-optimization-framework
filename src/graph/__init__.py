@@ -175,7 +175,7 @@ class TreeNode:
         self, station: model.StationModel, position: model.Vector[int], previous_node
     ) -> None:
 
-        self.next: List[TreeNode] | None = None
+        self.next: List[TreeNode] = []
         self.previous: TreeNode | None = previous_node
 
         self.station: model.StationModel = station
