@@ -72,7 +72,7 @@ Stations:
 
     Robot1:
       Transport:
-        Range: 2
+        Range: 1.6
         Parts:
           - Part1
           - Part2
@@ -81,7 +81,7 @@ Stations:
         - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
     Robot2:
       Transport:
-        Range: 2
+        Range: 1.6
         Parts:
           - Part1
           - Part2
