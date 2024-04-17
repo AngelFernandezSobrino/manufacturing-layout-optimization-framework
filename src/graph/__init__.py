@@ -46,7 +46,9 @@ class StationNode(DirectedGraphNode):
 
         self.edges: List[RoutingGraphEdge] = []
 
-        self.position: model.Vector[float]
+        self.place: model.Vector[int]
+
+        self.center_position: model.Vector[float]
 
         self.generate_storage_nodes()
 
@@ -61,6 +63,14 @@ class StationNode(DirectedGraphNode):
 
     def reset_position(self) -> None:
         self.position = model.Vector(0, 0)
+
+    def set_position(self, x: int, y: int, grid_params: model.GridParams) -> None:
+        self.position = model.Vector(x, y)
+        self.place = model.Vector(x, y)
+        self.center_position = model.Vector(
+            x * grid_params.measures.x + grid_params.half_measures.x,
+            y * grid_params.measures.y + grid_params.half_measures.y,
+        )
 
     def __str__(self) -> str:
         return f"{self.id}"
@@ -153,8 +163,8 @@ class PathEdge(DirectedGraphEdge):
 
         self.id = f"{part}"
 
-        self.origin = origin
-        self.destiny = destiny
+        self.origin: StorageNode = origin
+        self.destiny: StorageNode = destiny
 
         self.part = part
 

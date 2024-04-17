@@ -76,6 +76,20 @@ class Plant:
         self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
         self.vis_graphs: dict[StationNameType, vg.VisGraph] = {}
 
+    def __iter__(self):
+        self._iter_x = -1
+        self._iter_y = -1
+        return self
+
+    def __next__(self):
+        self._iter_x += 1
+        if self._iter_x == self.grid_params.size.x:
+            self._iter_x = 0
+            self._iter_y += 1
+            if self._iter_y == self.grid_params.size.y:
+                raise StopIteration
+        return Vector(self._iter_x, self._iter_y), self.grid[self._iter_y][self._iter_x]
+
     def set_location(self, position: Vector[int], station: StationModel):
         self.grid[position.y][position.x] = station
 

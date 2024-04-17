@@ -60,30 +60,45 @@ populate_next_nodes.valid_nodes = 0
 
 
 def check_configuration_each_leave(
-    node: TreeNode, flow_graph: ManufacturingProcessGraph, spec: SystemSpecification
+    node: TreeNode,
+    status: dict,
+    flow_graph: ManufacturingProcessGraph,
+    spec: SystemSpecification,
 ):
 
     if not len(node.next):
-        plant_grid, _ = graph_problem.create_plant_from_node_with_station_models_used(
+        plant, _ = graph_problem.create_plant_from_node_with_station_models_used(
             node, spec
         )
 
         check_configuration_each_leave.count_of_total_configurations += 1
         try:
-            if graph_problem.check_configuration_v2(plant_grid, flow_graph):
+            result = graph_problem.check_configuration_v2(plant, flow_graph)
+            if result:
                 # print("Configuration valid")
                 check_configuration_each_leave.count_of_valid_configurations += 1
-                return True
             else:
                 return False
         except Exception as e:
             check_configuration_each_leave.count_error_configurations += 1
+            return False
+
+        check_configuration_each_leave.count_of_checked_configurations += 1
+
+        if result < status["best_performance_ratio"]:
+            status["best_performance_ratio"] = result
+            status["best_performance_node"] = node
+
+        return
+
+    for next_node in node.next:
+        check_configuration_each_leave(next_node, status, flow_graph, spec)
 
     at_least_one_valid = False
 
     for index in range(len(node.next) - 1, -1, -1):
         # print(f"Checking {index}")
-        if check_configuration_each_leave(node.next[index], flow_graph, spec):
+        if check_configuration_each_leave(node.next[index], status, flow_graph, spec):
             at_least_one_valid = True
         else:
             del node.next[index]
@@ -94,34 +109,8 @@ def check_configuration_each_leave(
 check_configuration_each_leave.count_of_valid_configurations = 0
 check_configuration_each_leave.count_of_total_configurations = 0
 check_configuration_each_leave.count_error_configurations = 0
-
-
-def check_performance_each_leave(
-    node: TreeNode,
-    status: dict,
-    flow_graph: ManufacturingProcessGraph,
-    spec: SystemSpecification,
-):
-    if not len(node.next):
-        plant, _ = graph_problem.create_plant_from_node_with_station_models_used(
-            node, spec
-        )
-        check_performance_each_leave.count_of_checked_configurations += 1
-
-        plant_performance = graph_problem.check_performace_v2(plant, flow_graph)
-
-        if plant_performance < status["best_performance_ratio"]:
-            status["best_performance_ratio"] = plant_performance
-            status["best_performance_node"] = node
-
-        return
-
-    for next_node in node.next:
-        check_performance_each_leave(next_node, status, flow_graph, spec)
-
-
-check_performance_each_leave.count_of_checked_configurations = 0
-check_performance_each_leave.other_config_values = []
+check_configuration_each_leave.other_config_values = []
+check_configuration_each_leave.count_of_checked_configurations = 0
 
 
 def get_random_plant(system_specification: SystemSpecification):

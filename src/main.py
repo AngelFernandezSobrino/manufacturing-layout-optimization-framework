@@ -14,7 +14,6 @@ from graph import problem as graph_problem
 from model import tools as model_tools
 from support import (
     check_configuration_each_leave,
-    check_performance_each_leave,
     populate_next_nodes,
 )
 
@@ -67,7 +66,8 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
         + str(populate_next_nodes.evaluated_nodes - populate_next_nodes.valid_nodes)
     )
 
-    check_configuration_each_leave(first_node, flow_graph, spec)
+    status = {"best_performance_ratio": 9999999999.0, "best_performance_node": None}
+    check_configuration_each_leave(first_node, status, flow_graph, spec)
 
     print("Configurations checked")
 
@@ -94,22 +94,18 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
 
     # Print graph again
 
-    status = {"best_performance_ratio": 9999999999.0, "best_performance_node": None}
-
-    check_performance_each_leave(first_node, status, flow_graph, spec)
-
     print("Performance checked")
     print(
         "Count of checked configurations: "
-        + str(check_performance_each_leave.count_of_checked_configurations)
+        + str(check_configuration_each_leave.count_of_checked_configurations)
     )
 
     if status["best_performance_node"]:
-        plant_grid, _ = graph_problem.create_plant_from_node_with_station_models_used(
+        plant, _ = graph_problem.create_plant_from_node_with_station_models_used(
             status["best_performance_node"], spec
         )
 
-        plant_grid.print()
+        plant.print()
 
         print("Best performance ratio: " + str(status["best_performance_ratio"]))
         print("Best performance node: " + str(status["best_performance_node"]))
@@ -117,7 +113,9 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
     else:
         print("No valid configuration found")
 
-    return plant_grid
+    print(graph_problem.evaluate_plant(plant, flow_graph))
+
+    return plant
 
 
 def export(first_node, flow_graph: ManufacturingProcessGraph):
