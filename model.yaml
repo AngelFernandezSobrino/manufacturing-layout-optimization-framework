@@ -17,6 +17,7 @@ Stations:
           Place:
             X: 0.2
             Y: 0.2
+          Id: '1'
         - Type:
           - Part: Part2
             Add: 0
@@ -24,6 +25,7 @@ Stations:
           Place:
             X: -0.2
             Y: 0.2
+          Id: '2'
         - Type:
           - Part: Part3
             Add: 1
@@ -31,6 +33,7 @@ Stations:
           Place:
             X: 0.2
             Y: 0.2
+          Id: '3'
 
     PartsStorage:
       Storage:
@@ -41,6 +44,7 @@ Stations:
           Place:
             X: 0.2
             Y: 0.2
+          Id: '4'
         - Type:
           - Part: Part1
             Add: 1
@@ -48,6 +52,7 @@ Stations:
           Place:
             X: 0.3
             Y: 0.2
+          Id: '5'
         - Type:
           - Part: Part2
             Add: 1
@@ -55,6 +60,7 @@ Stations:
           Place:
             X: -0.2
             Y: 0.2
+          Id: '6'
         - Type:
           - Part: Part2
             Add: 1
@@ -62,6 +68,7 @@ Stations:
           Place:
             X: -0.3
             Y: 0.2
+          Id: '7'
         - Type:
           - Part: Part3
             Add: 1
@@ -69,25 +76,26 @@ Stations:
           Place:
             X: 0.2
             Y: -0.2
+          Id: '8'
 
     Robot1:
       Transport:
-        Range: 1.6
+        Range: 1.4
         Parts:
           - Part1
           - Part2
           - Part3
       Obstacles:
         - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
-    Robot2:
-      Transport:
-        Range: 1.6
-        Parts:
-          - Part1
-          - Part2
-          - Part3
-      Obstacles:
-        - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
+    # Robot2:
+    #   Transport:
+    #     Range: 1.4
+    #     Parts:
+    #       - Part1
+    #       - Part2
+    #       - Part3
+    #   Obstacles:
+    #     - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
     Press:
       Storage:
         - Type:
@@ -105,6 +113,7 @@ Stations:
           Place:
             X: 0.2
             Y: 0.0
+          Id: '9'
 
       Activities:
         - Activity1

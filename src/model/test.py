@@ -110,28 +110,28 @@ class TestPointMethods(unittest.TestCase):
             GridParams({"Size": {"X": 5, "Y": 5}, "Measures": {"X": 0.8, "Y": 0.8}})
         )
 
-        plant.grid[0][2] = StationModel("InOut", inout_station_dict)
-        plant.grid[1][2] = StationModel("Storage", storage_station_dict)
-        plant.grid[2][2] = StationModel("Press", press_station_dict)
-        plant.grid[1][1] = StationModel("Robot", robot_station_dict)
+        plant._grid[0][2] = StationModel("InOut", inout_station_dict)
+        plant._grid[1][2] = StationModel("Storage", storage_station_dict)
+        plant._grid[2][2] = StationModel("Press", press_station_dict)
+        plant._grid[1][1] = StationModel("Robot", robot_station_dict)
 
         plant.build_vis_graphs()
 
-        self.assertIsInstance(plant.vis_graphs["Robot"], vg.Graph, "Graph not built")
-        if plant.vis_graphs["Robot"].graph is None:
+        self.assertIsInstance(plant._vis_graphs["Robot"], vg.Graph, "Graph not built")
+        if plant._vis_graphs["Robot"].graph is None:
             return
 
         self.assertTrue(
-            len(plant.vis_graphs["Robot"].graph.edges), "No vertices checked"
+            len(plant._vis_graphs["Robot"].graph.edges), "No vertices checked"
         )
         self.assertTrue(
-            len(plant.vis_graphs["Robot"].graph.polygons), "No polygons checked"
+            len(plant._vis_graphs["Robot"].graph.polygons), "No polygons checked"
         )
 
-        visible_points = plant.vis_graphs["Robot"].find_visible(vg.Point(1, 1))
+        visible_points = plant._vis_graphs["Robot"].find_visible(vg.Point(1, 1))
 
         print("Main graph points: ")
-        for point in plant.vis_graphs["Robot"].graph.graph:
+        for point in plant._vis_graphs["Robot"].graph.graph:
             print(point)
 
         print("Press central point: ")

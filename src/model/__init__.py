@@ -129,6 +129,7 @@ class Storage:
         self.position: Vector[float] = Vector(
             storage_dict["Place"]["X"], storage_dict["Place"]["Y"]
         )
+        self.id: str = storage_dict["Id"]
 
 
 class StorageType:
@@ -246,6 +247,7 @@ class StationModelDict(TypedDict):
 class StorageDict(TypedDict):
     Type: List[StorageTypeDict]
     Place: VectorDict[float]
+    Id: str
 
 
 class StorageTypeDict(TypedDict):

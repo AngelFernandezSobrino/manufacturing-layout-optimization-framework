@@ -30,7 +30,7 @@ def populate_next_nodes(
         graph_problem.create_plant_from_node_with_station_models_used(node, spec)
     )
 
-    new_config_set = plant.get_config_set()
+    new_config_set = plant.get_flat_config_set()
 
     for config_set in populate_next_nodes.config_repository:
         if new_config_set == config_set:
@@ -118,7 +118,7 @@ def get_random_plant(system_specification: SystemSpecification):
     plant = Plant(system_specification.model.stations.grid)
     station_models_used: set[str] = set()
 
-    plant.grid[0][2] = system_specification.model.stations.models["InOut"]
+    plant._grid[0][2] = system_specification.model.stations.models["InOut"]
     station_models_used.add("InOut")
 
     while True:
@@ -134,7 +134,7 @@ def get_random_plant(system_specification: SystemSpecification):
             )
         ]
 
-        plant.grid[position.y][position.x] = station_model
+        plant._grid[position.y][position.x] = station_model
 
         station_models_used.add(station_model.name)
 
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         path_x = []
         path_y = []
 
-        for point in plant.vis_graphs[station_name].shortest_path(
+        for point in plant._vis_graphs[station_name].shortest_path(
             vg.Point(0, 0), destination=vg.Point(2, 2)
         ):
             path_x.append(point.x)

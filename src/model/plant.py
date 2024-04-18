@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import copy
 from dataclasses import dataclass
 import itertools
 from math import atan2, cos, sin, sqrt
+import sys
 from turtle import pos
 from typing import List, Optional
 import matplotlib
@@ -13,6 +16,7 @@ import shapely
 import shapely.ops
 
 from model import GridParams, StationModel, StationNameType, Vector
+from model.tools import SystemSpecification
 
 """Plant description
 
@@ -62,94 +66,114 @@ Grid coordinates
 
 
 class Plant:
-    def __init__(self, grid: GridParams) -> None:
+    def __init__(self, system_spec: SystemSpecification) -> None:
+        """Model of the 2D distribution of the stations in the plant
 
-        self.grid_params = grid
+        It requires to be associated to a system specification to configure the plant data structure. Furthermore, the spec models are referenced in the plant distribution data structure, so the stations models can be directly accessed from the plant data structure.
 
-        self.grid: list[list[Optional[StationModel]]] = [
-            [None for x in range(self.grid_params.size.x)]
-            for y in range(self.grid_params.size.y)
+        It implements the iterator protocol to iterate over the plant stations. The iterator returns a tuple with the position of the station and the station model.
+
+        It can't be used until the ready method is called, as it is used to signal that the plant modelsg
+
+        """
+
+        self._grid_params = system_spec.model.stations.grid
+
+        self._system_spec = system_spec
+        self._config: list[tuple[Vector[int], StationNameType]] = []
+
+        self._grid: list[list[Optional[StationModel]]] = [
+            [None for x in range(self._grid_params.size.x)]
+            for y in range(self._grid_params.size.y)
         ]
 
-        self.not_ready = True
+        self._not_ready = True
 
-        self.poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
-        self.vis_graphs: dict[StationNameType, vg.VisGraph] = {}
+        self._poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
+        self._vis_graphs: dict[StationNameType, vg.VisGraph] = {}
 
     def __iter__(self):
         self._iter_x = -1
         self._iter_y = -1
         return self
 
-    def __next__(self):
+    def __next__(self) -> tuple[Vector[int], StationModel]:
         self._iter_x += 1
-        if self._iter_x == self.grid_params.size.x:
+        if self._iter_x == self._grid_params.size.x:
             self._iter_x = 0
             self._iter_y += 1
-            if self._iter_y == self.grid_params.size.y:
+            if self._iter_y == self._grid_params.size.y:
                 raise StopIteration
-        return Vector(self._iter_x, self._iter_y), self.grid[self._iter_y][self._iter_x]
+
+        actual = self._grid[self._iter_y][self._iter_x]
+
+        return (
+            (Vector(self._iter_x, self._iter_y), actual)
+            if actual is not None
+            else self.__next__()
+        )
 
     def set_location(self, position: Vector[int], station: StationModel):
-        self.grid[position.y][position.x] = station
+        self._grid[position.y][position.x] = station
 
     def get_location(self, position: Vector[int]) -> Optional[StationModel]:
-        return self.grid[position.y][position.x]
+        return self._grid[position.y][position.x]
 
     def get_location_coordinates(self, x: int, y: int) -> Optional[StationModel]:
-        return self.grid[y][x]
+        return self._grid[y][x]
 
     def ready(self):
-        self.not_ready = False
+        self._not_ready = False
 
     def search_by_name(self, station_name: StationNameType):
         for x, y in itertools.product(
-            range(self.grid_params.size.x), range(self.grid_params.size.y)
+            range(self._grid_params.size.x), range(self._grid_params.size.y)
         ):
-            if self.grid[y][x] is None:
+            if self._grid[y][x] is None:
                 continue
 
-            if self.grid[y][x].name == station_name:
+            if self._grid[y][x].name == station_name:
                 return Vector(x, y)
 
         raise ValueError(f"Station {station_name} not found")
 
     def build_vis_graphs(self):
 
-        assert not self.not_ready
+        assert not self._not_ready
 
         # Compute the poligons that are going to be used to build the visibility graph
         for x, y in itertools.product(
-            range(self.grid_params.size.x), range(self.grid_params.size.y)
+            range(self._grid_params.size.x), range(self._grid_params.size.y)
         ):
 
-            station = self.grid[y][x]
+            station = self._grid[y][x]
 
             if station is None:
                 continue
             if station.obstacles is None:
                 continue
             if station.transports is None:
-                self.poligons.normal.extend(
+                self._poligons.normal.extend(
                     station.get_absolute_obstacles(
                         Vector(
-                            x * self.grid_params.measures.x,
-                            y * self.grid_params.measures.y,
+                            x * self._grid_params.measures.x,
+                            y * self._grid_params.measures.y,
                         )
                     )
                 )
             else:
-                self.poligons.robot[station.name] = station.get_absolute_obstacles(
+                self._poligons.robot[station.name] = station.get_absolute_obstacles(
                     Vector(
-                        x * self.grid_params.measures.x, y * self.grid_params.measures.y
+                        x * self._grid_params.measures.x,
+                        y * self._grid_params.measures.y,
                     )
                 )
 
         # Compute the visibility graph for each transport station
         for x, y in itertools.product(
-            range(self.grid_params.size.x), range(self.grid_params.size.y)
+            range(self._grid_params.size.x), range(self._grid_params.size.y)
         ):
-            station = self.grid[y][x]
+            station = self._grid[y][x]
             if station is None:
                 continue
             if station.transports is None:
@@ -157,8 +181,10 @@ class Plant:
 
             self._build_transport_visibility_graph(
                 Vector(
-                    self.grid_params.half_measures.x + x * self.grid_params.measures.x,
-                    self.grid_params.half_measures.y + y * self.grid_params.measures.y,
+                    self._grid_params.half_measures.x
+                    + x * self._grid_params.measures.x,
+                    self._grid_params.half_measures.y
+                    + y * self._grid_params.measures.y,
                 ),
                 station.name,
             )
@@ -167,12 +193,14 @@ class Plant:
         self, station_position: Vector[float], station_name: str
     ):
 
-        self.vis_graphs[station_name] = vg.VisGraph()
+        self._vis_graphs[station_name] = vg.VisGraph()
 
         # List of all other poligons that are not from the current transport station
-        all_other_poligons: list[list[vg.Point]] = [p for p in self.poligons.normal] + [
+        all_other_poligons: list[list[vg.Point]] = [
+            p for p in self._poligons.normal
+        ] + [
             p
-            for poligon_station_name, poligons in self.poligons.robot.items()
+            for poligon_station_name, poligons in self._poligons.robot.items()
             for p in poligons
             if poligon_station_name != station_name
         ]
@@ -255,59 +283,58 @@ class Plant:
         for poligon in new_poligons:
             poligon.pop()
 
-        # Print some data of the current graph that is being build
-        # print()
-        # print()
-        # print("Visibility graph being build ---- ")
-
-        # print("Graph name: ", station_name)
-        # print("Station position: ", station_position)
-        # print("All poligons: ")
-        # for poligon in self.poligons.normal:
-        #     print(poligon)
-
-        # print("All robot poligons: ")
-        # for robot_name, poligons in self.poligons.robot.items():
-        #     print(robot_name)
-        #     for poligon in poligons:
-        #         print(poligon)
-
-        # print("Visible point: ", visible_points)
-        # print("New Poligons: ")
-        # for poligon in new_poligons:
-        #     print(poligon)
-
-        self.vis_graphs[station_name].build(new_poligons, workers=1, status=False)
+        self._vis_graphs[station_name].build(new_poligons, workers=1, status=False)
 
     def hash(self):
         plant_hash = ""
-        for y in range(self.grid_params.size.y):
-            for x in range(self.grid_params.size.x):
-                if self.grid[y][x] is None:
-                    continue
-                plant_hash += f"{self.grid[y][x].name}({x},{y})"  # type: ignore
+
+        for y, x in itertools.product(
+            range(self._grid_params.size.y), range(self._grid_params.size.x)
+        ):
+            if self._grid[y][x] is None:
+                continue
+            plant_hash += f"{self._grid[y][x].name}({x},{y})"  # type: ignore
 
         return plant_hash
+
+    def _update_config(self):
+        for y, x in itertools.product(
+            range(self._grid_params.size.y), range(self._grid_params.size.x)
+        ):
+            if self._grid[y][x] is None:
+                continue
+            self._config.append((Vector(x, y), self._grid[y][x].name))  # type: ignore
+
+    def export_config(self):
+        self._update_config()
+        return self._config
+
+    def import_config(self, config: PlantConfigType):
+        self._config = copy.deepcopy(config)
+        for position, station_name in self._config:
+            self.set_location(
+                position, self._system_spec.model.stations.models[station_name]
+            )
 
     def get_path_between_two_points_with_transport(
         self, point1: Vector[float], point2: Vector[float], transport_name: str
     ) -> List[vg.Point]:
 
-        return self.vis_graphs[transport_name].shortest_path(
+        return self._vis_graphs[transport_name].shortest_path(
             vg.Point(point1.x, point1.y), vg.Point(point2.x, point2.y)
         )
 
-    def get_config_set(self):
+    def get_flat_config_set(self):
 
         hash_set: set[str] = set()
 
         for x, y in itertools.product(
-            range(self.grid_params.size.x), range(self.grid_params.size.y)
+            range(self._grid_params.size.x), range(self._grid_params.size.y)
         ):
-            if self.grid[y][x] is None:
+            if self._grid[y][x] is None:
                 continue
 
-            hash_set.add(f"{self.grid[y][x].name}({x},{y})")
+            hash_set.add(f"{self._grid[y][x].name}({x},{y})")
 
         return hash_set
 
@@ -323,7 +350,7 @@ class Plant:
         table._max_width = table_width
         table._min_width = table_width
 
-        for row_index, row in enumerate(self.grid):
+        for row_index, row in enumerate(self._grid):
             table.add_row([row_index, *row])
 
         print(table)
@@ -336,9 +363,9 @@ class Plant:
 
         visibility_graph = vg.VisGraph()
 
-        all_poligons = [poligon for poligon in self.poligons.normal] + [
+        all_poligons = [poligon for poligon in self._poligons.normal] + [
             poligon
-            for robot_name, poligons in self.poligons.robot.items()
+            for robot_name, poligons in self._poligons.robot.items()
             for poligon in poligons
         ]
 
@@ -352,11 +379,11 @@ class Plant:
 
         fig = plt.figure()
 
-        vis_axes = fig.add_subplot(1, len(self.vis_graphs) + 1, 1)
+        vis_axes = fig.add_subplot(1, len(self._vis_graphs) + 1, 1)
 
         axes_dict: dict[StationNameType, matplotlib.axes.Axes] = {
-            station_name: fig.add_subplot(1, len(self.vis_graphs) + 1, index + 2)
-            for index, station_name in enumerate(self.vis_graphs)
+            station_name: fig.add_subplot(1, len(self._vis_graphs) + 1, index + 2)
+            for index, station_name in enumerate(self._vis_graphs)
         }
 
         if visibility_graph.graph is not None:
@@ -366,20 +393,20 @@ class Plant:
                 )
 
         vis_axes.set_aspect("equal")
-        vis_axes.set_xlim(0, self.grid_params.measures.x * self.grid_params.size.x)
-        vis_axes.set_ylim(0, self.grid_params.measures.y * self.grid_params.size.y)
+        vis_axes.set_xlim(0, self._grid_params.measures.x * self._grid_params.size.x)
+        vis_axes.set_ylim(0, self._grid_params.measures.y * self._grid_params.size.y)
         vis_axes.xaxis.set_major_locator(
-            matplotlib.ticker.MultipleLocator(self.grid_params.measures.x)
+            matplotlib.ticker.MultipleLocator(self._grid_params.measures.x)
         )
         vis_axes.yaxis.set_major_locator(
-            matplotlib.ticker.MultipleLocator(self.grid_params.measures.y)
+            matplotlib.ticker.MultipleLocator(self._grid_params.measures.y)
         )
         vis_axes.invert_yaxis()
         vis_axes.grid(True, which="major", linestyle="-", linewidth=0.5)
         vis_axes.grid(True, which="minor", linestyle=":", linewidth=0.2)
 
         for (transport_station_name, vis_graph), axes in zip(
-            self.vis_graphs.items(), axes_dict.values()
+            self._vis_graphs.items(), axes_dict.values()
         ):
             if vis_graph.graph is None or vis_graph.visgraph is None:
                 continue
@@ -392,28 +419,31 @@ class Plant:
             transport_station_position = self.search_by_name(transport_station_name)
 
             axes.plot(
-                self.grid_params.half_measures.x
-                + transport_station_position.x * self.grid_params.measures.x,
-                self.grid_params.half_measures.y
-                + transport_station_position.y * self.grid_params.measures.y,
+                self._grid_params.half_measures.x
+                + transport_station_position.x * self._grid_params.measures.x,
+                self._grid_params.half_measures.y
+                + transport_station_position.y * self._grid_params.measures.y,
                 "ro",
             )
 
             axes.set_aspect("equal")
 
-            axes.set_xlim(0, self.grid_params.measures.x * self.grid_params.size.x)
-            axes.set_ylim(0, self.grid_params.measures.y * self.grid_params.size.y)
+            axes.set_xlim(0, self._grid_params.measures.x * self._grid_params.size.x)
+            axes.set_ylim(0, self._grid_params.measures.y * self._grid_params.size.y)
             axes.xaxis.set_major_locator(
-                matplotlib.ticker.MultipleLocator(self.grid_params.measures.x)
+                matplotlib.ticker.MultipleLocator(self._grid_params.measures.x)
             )
             axes.yaxis.set_major_locator(
-                matplotlib.ticker.MultipleLocator(self.grid_params.measures.y)
+                matplotlib.ticker.MultipleLocator(self._grid_params.measures.y)
             )
             axes.invert_yaxis()
             axes.grid(True, which="major", linestyle="-", linewidth=0.5)
             axes.grid(True, which="minor", linestyle=":", linewidth=0.2)
 
         return fig, axes_dict, vis_axes
+
+
+PlantConfigType = list[tuple[Vector[int], StationNameType]]
 
 
 @dataclass

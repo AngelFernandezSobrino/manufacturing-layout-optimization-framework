@@ -36,7 +36,7 @@ class ManufacturingProcessGraph:
         self.parts_to_be_produced = parts_to_be_produced
         self.activities_to_be_executed = activities_to_be_executed
 
-        stations_producing_objectives = []
+        stations_producing_objectives: list[model.StationModel] = []
 
         for station in self.system_model.stations.models.values():
             if station.activities is None:
@@ -82,7 +82,6 @@ class ManufacturingProcessGraph:
                                 if new_edge not in transport_node.edges:
                                     storage_node.edges.append(new_edge)
                                     transport_node.edges.append(new_edge)
-                                    storage_node.edges.append(new_edge)
                                     self.routing_edges.append(new_edge)
 
                             if storage_type.remove == 1:
@@ -95,7 +94,6 @@ class ManufacturingProcessGraph:
                                 if new_edge not in transport_node.edges:
                                     storage_node.edges.append(new_edge)
                                     transport_node.edges.append(new_edge)
-                                    storage_node.edges.append(new_edge)
                                     self.routing_edges.append(new_edge)
 
         self.station_nodes = nodes
@@ -131,6 +129,7 @@ class ManufacturingProcessGraph:
                                         other_storage_node,
                                         storage_node,
                                     )
+
                                     if new_edge not in storage_node.pathing_edges:
                                         storage_node.pathing_edges.append(new_edge)
                                         other_storage_node.pathing_edges.append(
@@ -144,6 +143,7 @@ class ManufacturingProcessGraph:
                                         storage_node,
                                         other_storage_node,
                                     )
+
                                     if new_edge not in storage_node.pathing_edges:
                                         storage_node.pathing_edges.append(new_edge)
                                         other_storage_node.pathing_edges.append(
@@ -156,17 +156,15 @@ class ManufacturingProcessGraph:
             node.reset_position()
 
     def print(self) -> None:
-        print("Parts to be produced:")
-        [print(part) for part in self.parts_to_be_produced]
 
-        print("Activities to be executed:")
-        [print(activity) for activity in self.activities_to_be_executed]
+        print(f"Parts to be produced: { " ".join(self.parts_to_be_produced)}")
+        print(f"Activities to be executed: { " ".join(self.activities_to_be_executed)}")
+        
+        station_producing_objectives_names = [str(model) for model in self.stations_producing_objectives]
+        print(f"Stations producing objectives: { " ".join(station_producing_objectives_names)}")
 
-        print("Stations producing objectives:")
-        [print(station) for station in self.stations_producing_objectives]
-
-        print("Nodes:")
-        [print(node) for node in self.station_nodes]
+        station_nodes_names = [str(node) for node in self.station_nodes]
+        print(f"Nodes: { " ".join(station_nodes_names)}")
 
         self.print_directed_graph_table(self.station_nodes)
 

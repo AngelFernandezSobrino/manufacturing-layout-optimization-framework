@@ -57,14 +57,14 @@ def get_available_positions(plant: Plant) -> list[Vector[int]]:
     available_positions: list[Vector] = []
 
     for x, y in itertools.product(
-        range(plant.grid_params.size.x), range(1, plant.grid_params.size.y)
+        range(plant._grid_params.size.x), range(1, plant._grid_params.size.y)
     ):
-        if plant.grid[y][x] is None:
+        if plant._grid[y][x] is None:
             if (
-                (y > 0 and plant.grid[y - 1][x] is not None)
-                or (x > 0 and plant.grid[y][x - 1] is not None)
-                or (x < 4 and plant.grid[y][x + 1] is not None)
-                or (y < 4 and plant.grid[y + 1][x] is not None)
+                (y > 0 and plant._grid[y - 1][x] is not None)
+                or (x > 0 and plant._grid[y][x - 1] is not None)
+                or (x < 4 and plant._grid[y][x + 1] is not None)
+                or (y < 4 and plant._grid[y + 1][x] is not None)
             ):
                 available_positions.append(Vector(x, y))
 
@@ -78,7 +78,7 @@ def get_stations_with_transport_vectors(
     transport_vectors: list[Vector] = []
 
     for x, y in itertools.product(
-        range(plant.grid_params.size.x), range(plant.grid_params.size.y)
+        range(plant._grid_params.size.x), range(plant._grid_params.size.y)
     ):
         station = plant.get_location_coordinates(x, y)
         if station is None:
@@ -116,8 +116,6 @@ def check_configuration_v2(
     graph.reset_positions()
 
     for place, station in plant:
-        if station is None:
-            continue
         for node in graph.station_nodes:
             if node.model.name == station.name:
                 node.position.set(place.x, place.y)
@@ -139,20 +137,20 @@ def check_configuration_v2(
 
         # The position of both the origin and the destiny have to be outside a poligon to be reachable
 
-        if plant.vis_graphs[edge.transport.model.name].point_in_polygon(
+        if plant._vis_graphs[edge.transport.model.name].point_in_polygon(
             edge.transport.position
         ):
-            continue
+            return False
 
-        stations_distance = path_distance(
+        assert edge.transport.model.transports
+
+        if edge.transport.model.transports.range < path_distance(
             plant.get_path_between_two_points_with_transport(
                 edge.transport.center_position,
                 edge.storage.absolute_position(),
                 edge.transport.model.name,
             )
-        )
-
-        if edge.transport.model.transports.range < stations_distance:  # type: ignore
+        ):  # type: ignore
             return False
 
     result = 0
@@ -168,7 +166,7 @@ def check_configuration_v2(
     We are going to iterate through all the edges, check the distance between the robot and the origin, or the robot and the destiny, to check if the robot can do the path
     """
 
-    for transport_name in plant.vis_graphs.keys():
+    for transport_name in plant._vis_graphs.keys():
         for edge in graph.pathing_edges:
 
             stations_distance: float = path_distance(
@@ -192,7 +190,7 @@ def evaluate_plant(
 
     graph.reset_positions()
 
-    for colIndex, column in enumerate(plant.grid):
+    for colIndex, column in enumerate(plant._grid):
         for rowIndex, station in enumerate(iterable=column):
             if station is None:
                 continue
@@ -212,7 +210,7 @@ def evaluate_plant(
 
     data_dict = {}
 
-    for transport_name in plant.vis_graphs.keys():
+    for transport_name in plant._vis_graphs.keys():
         data_dict[transport_name] = {}
         for edge in graph.pathing_edges:
 

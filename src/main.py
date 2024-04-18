@@ -115,6 +115,10 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
 
     print(graph_problem.evaluate_plant(plant, flow_graph))
 
+    plant_plot = plant.plot_plant_graph()
+
+    plant_plot[0].show()
+
     return plant
 
 

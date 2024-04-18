@@ -86,7 +86,7 @@ class StorageNode(DirectedGraphNode):
     """
 
     def __init__(self, storage: model.Storage, station: StationNode) -> None:
-        self.id: str = f"{station.model.name}-{storage.type}-{storage.position}"
+        self.id: str = f"{station.model.name} {storage.id}"
         self.model: model.Storage = storage
 
         self.parent_station: StationNode = station
@@ -127,6 +127,9 @@ class RoutingGraphEdge(DirectedGraphEdge):
     ) -> None:
         self.id: str = f"{part}"
 
+        if transport.model.transports is None:
+            raise Exception("Transport station has no transports")
+
         self.transport = transport
         self.storage = storage
         self.direction = direction
@@ -151,6 +154,7 @@ class RoutingGraphEdge(DirectedGraphEdge):
             self.id == __other.id
             and self.transport == __other.transport
             and self.storage == __other.storage
+            and self.direction == __other.direction
         ):
             return True
         else:
@@ -173,6 +177,20 @@ class PathEdge(DirectedGraphEdge):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def __eq__(self, __other: Any) -> bool:
+        if not isinstance(__other, PathEdge):
+            raise NotImplemented
+
+        if (
+            self.id == __other.id
+            and self.origin == __other.origin
+            and self.destiny == __other.destiny
+            and self.part == __other.part
+        ):
+            return True
+        else:
+            return False
 
 
 class TreeNode:

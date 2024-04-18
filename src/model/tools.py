@@ -13,11 +13,14 @@ from . import (
 
 
 class SystemSpecification:
+    """Wrapper class for the system specification model.
+
+    This class is used to parse the model specification and to store the parsed model.
+    """
 
     def __init__(
         self, model_string: str = "", model_stream: TextIOWrapper | None = None
     ) -> None:
-        print("System specification constructor")
         self.model_string = model_string
         self.model_stream = model_stream
 
