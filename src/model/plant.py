@@ -116,6 +116,21 @@ class Plant:
     def set_location(self, position: Vector[int], station: StationModel):
         self._grid[position.y][position.x] = station
 
+    def get_and_remove(self, position: Vector[int]) -> StationModel:
+        station = self._grid[position.y][position.x]
+        self._grid[position.y][position.x] = None
+        assert station is not None
+        return station
+
+    def get_and_remove_coord(self, x: int, y: int) -> StationModel:
+        station = self._grid[y][x]
+        assert station is not None, f"Station at {x},{y} is None"
+        self._grid[y][x] = None
+        return station
+
+    def is_empty_coord(self, x: int, y: int):
+        return self._grid[y][x] is None
+
     def get_location(self, position: Vector[int]) -> Optional[StationModel]:
         return self._grid[position.y][position.x]
 
@@ -442,6 +457,32 @@ class Plant:
 
         return fig, axes_dict, vis_axes
 
+    def compare(self, other: Plant):
+        """Gets another plant and compares it with the current plant
+
+        It returns a grid array with the comparison of the two plants. If the two plants have the same content at an specific position, the value at that position is True, otherwise it is False.
+
+        Args:
+            other (Plant): _description_
+
+        Returns:
+            bool: _description_
+        """
+        result: list[list[bool]] = [
+            [False for x in range(self._grid_params.size.x)]
+            for y in range(self._grid_params.size.y)
+        ]
+
+        for y, x in itertools.product(
+            range(self._grid_params.size.y), range(self._grid_params.size.x)
+        ):
+            if self._grid[y][x] is None and other._grid[y][x] is None:
+                result[y][x] = True
+            elif self._grid[y][x] is not None and other._grid[y][x] is not None:
+                result[y][x] = self._grid[y][x].name == other._grid[y][x].name
+
+        return result
+
 
 PlantConfigType = list[tuple[Vector[int], StationNameType]]
 
@@ -465,3 +506,106 @@ def path_distance(path: List[vg.Point]) -> float:
             (path[i].x - path[i + 1].x) ** 2 + (path[i].y - path[i + 1].y) ** 2
         )
     return distance
+
+
+class RearrangmentPlant(Plant):
+    def __init__(self, system_spec: SystemSpecification) -> None:
+        super().__init__(system_spec)
+
+    def move_station_to_another_coord(self, x1: int, y1: int, x2: int, y2):
+        """Moves a station from one position to another
+
+        It will check if the movement is possible and then move the station to the new position
+        """
+        for x in range(self._grid_params.size.x - 1, x2, -1):
+            if self._grid[y2][x] is None:
+                continue
+            raise UnsolvableError(f"Station at {x2},{y2} is not None")
+
+        station = self._grid[y1][x1]
+        assert station is not None, f"Station at {x1},{y1} is None"
+        self._grid[y2][x2] = station
+        self._grid[y1][x1] = None
+
+        return station.name
+
+
+class RearrangmentPlantV1(RearrangmentPlant):
+    def __init__(self, system_spec: SystemSpecification) -> None:
+        super().__init__(system_spec)
+        self.storage_buffer: list[StationModel | None] = []
+
+    def move_station_to_storage_buffer_coord(self, x: int, y: int):
+        """Moves a station from the plant to the storage buffer
+
+        Returns the number of stations in the storage buffer
+        """
+        station = self._grid[y][x]
+        assert station is not None, f"Station at {x},{y} is None"
+        self.storage_buffer.append(station)
+        self._grid[y][x] = None
+        return self.storage_buffer[-1].name, len(self.storage_buffer)
+
+    def move_station_from_buffer_to_coord(
+        self, station_name: StationNameType, x: int, y: int
+    ):
+        assert self._grid[y][x] is None, f"Station at {x},{y} is not None"
+
+        for index, station in enumerate(self.storage_buffer):
+            if station is not None and station.name == station_name:
+                self._grid[y][x] = self.storage_buffer[index]
+                self.storage_buffer[index] = None
+                return index
+
+
+class RearrangmentPlantV2(RearrangmentPlant):
+    def __init__(self, system_spec: SystemSpecification, buffer_size: int) -> None:
+        super().__init__(system_spec)
+        self.storage_buffer: list[StationModel | None] = [
+            None for _ in range(buffer_size)
+        ]
+
+        self.storage_buffer_cursor: int = 0
+
+    def move_station_to_storage_buffer_coord(self, x: int, y: int):
+        """Moves a station from the plant to the storage buffer
+
+        Returns the number of stations in the storage buffer
+        """
+        if self.storage_buffer_cursor >= len(self.storage_buffer):
+            raise UnsolvableError("Storage buffer is not big enough")
+
+        station = self._grid[y][x]
+        assert station is not None, f"Station at {x},{y} is None"
+        result = station.name, self.storage_buffer_cursor + 1
+
+        self.storage_buffer[self.storage_buffer_cursor] = station
+        self._grid[y][x] = None
+        self.storage_buffer_cursor += 1
+
+        while True:
+            if self.storage_buffer_cursor == len(self.storage_buffer):
+                break
+
+            if self.storage_buffer[self.storage_buffer_cursor] is not None:
+                self.storage_buffer_cursor += 1
+            else:
+                break
+
+        return result
+
+    def move_station_from_buffer_to_coord(
+        self, station_name: StationNameType, x: int, y: int
+    ):
+        assert self._grid[y][x] is None, f"Station at {x},{y} is not None"
+
+        for index, station in enumerate(self.storage_buffer):
+            if station is not None and station.name == station_name:
+                self._grid[y][x] = self.storage_buffer[index]
+                self.storage_buffer[index] = None
+                self.storage_buffer_cursor = index
+                return index
+
+
+class UnsolvableError(Exception):
+    pass

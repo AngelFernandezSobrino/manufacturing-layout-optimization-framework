@@ -21,8 +21,6 @@ class SystemSpecification:
     def __init__(
         self, model_string: str = "", model_stream: TextIOWrapper | None = None
     ) -> None:
-        self.model_string = model_string
-        self.model_stream = model_stream
 
         if model_string != "":
             self.yaml_parsed: ModelSpecificationDict = yaml.full_load(

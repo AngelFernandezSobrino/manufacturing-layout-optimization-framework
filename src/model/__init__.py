@@ -32,6 +32,9 @@ class Vector(Generic[IntOrFloat]):
     def __str__(self) -> str:
         return f"({self.x}, {self.y})"
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def __add__(self, __value):
         return Vector(self.x + __value.x, self.y + __value.y)
 
