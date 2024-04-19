@@ -87,15 +87,15 @@ Stations:
           - Part3
       Obstacles:
         - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
-    # Robot2:
-    #   Transport:
-    #     Range: 1.4
-    #     Parts:
-    #       - Part1
-    #       - Part2
-    #       - Part3
-    #   Obstacles:
-    #     - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
+    Robot2:
+      Transport:
+        Range: 1.4
+        Parts:
+          - Part1
+          - Part2
+          - Part3
+      Obstacles:
+        - [{X: 0.2, Y: 0.2}, {X: 0.2, Y: 0.6}, {X: 0.6, Y: 0.6}, {X: 0.6, Y: 0.2}]
     Press:
       Storage:
         - Type:
