@@ -38,7 +38,7 @@ def create_plant_from_node_with_station_models_used(
     node_evaluated = node
     while True:
 
-        plant.set_location(node_evaluated.position, node_evaluated.station)
+        plant.set_station_location(node_evaluated.position, node_evaluated.station)
 
         station_models_used.add(node_evaluated.station.name)
 

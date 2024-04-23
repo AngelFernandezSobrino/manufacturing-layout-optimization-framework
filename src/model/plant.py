@@ -88,7 +88,7 @@ class BasePlant(object):
             for y in range(self._grid_params.size.y)
         ]
 
-        self._stations: dict[StationNameType, Vector[int] | int] = {
+        self.__stations: dict[StationNameType, Vector[int] | int] = {
             station_name: Vector(-1, -1)
             for station_name in self._system_spec.model.stations.models.keys()
         }
@@ -101,13 +101,19 @@ class BasePlant(object):
         return GridIterator(self.__grid).__iter__()
 
     def station_position(self, name: StationNameType):
-        return copy.copy(self._stations[name])
+        return copy.copy(self.__stations[name])
 
-    def set_location(self, position: Vector[int], name: StationNameType):
+    def set_station_location(self, name: StationNameType, position: Vector[int]):
+
+        assert (
+            self.__grid[position.y][position.x] is None
+        ), f"Station at {position} is not None, {name} can't be placed there"
+
         self.__grid[position.y][position.x] = self._system_spec.model.stations.models[
             name
         ]
-        self._stations[name] = position
+
+        self.__stations[name] = position
 
     def get_and_remove(self, position: Vector[int]) -> StationModel:
         """
@@ -123,19 +129,17 @@ class BasePlant(object):
             AssertionError: If the station at the specified position is None.
         """
         station = self.__grid[position.y][position.x]
-        self.__grid[position.y][position.x] = None
         assert station is not None
+        self.__grid[position.y][position.x] = None
+        self.__stations[station.name] = Vector(-1, -1)
         return station
 
     def get_and_remove_coord(self, x: int, y: int) -> StationModel:
         station = self.__grid[y][x]
         assert station is not None, f"Station at {x},{y} is None"
         self.__grid[y][x] = None
-        self._stations[station.name] = Vector(-1, -1)
+        self.__stations[station.name] = Vector(-1, -1)
         return station
-
-    def get_location(self, position: Vector[int]) -> Optional[StationModel]:
-        return self.__grid[position.y][position.x]
 
     def ready(self):
         self._not_ready = False
@@ -257,7 +261,7 @@ class BasePlant(object):
         """
         self.__config = copy.deepcopy(config)
         for position, station_name in self.__config:
-            self.set_location(
+            self.set_station_location(
                 position, self._system_spec.model.stations.models[station_name].name
             )
 
@@ -285,19 +289,18 @@ class BasePlant(object):
             width (int, optional): _description_. Defaults to 15.
         """
         table = prettytable.PrettyTable()
-        column_names = ["", "A", "B", "C", "D", "E"]
+        column_names = [""] + list(map(str, range(1, self._grid_params.size.x + 1)))
         table_width: dict[str, int] = {}
 
         for name in column_names:
             table_width[name] = width
-
         table.field_names = column_names
         # table.max_width = table_width
         table._min_width = table_width  # pylint: disable=protected-access
 
         for row_index, row in enumerate(self.__grid):
-            shown_row = [value for value in row if value is not None]
-            table.add_row([row_index, *row])
+            shown_row = [value if value is not None else "" for value in row]
+            table.add_row([chr(ord("@") + row_index + 1), *shown_row])
 
         print(table)
 

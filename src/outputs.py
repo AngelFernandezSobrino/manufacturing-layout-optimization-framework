@@ -12,7 +12,7 @@ from graph import (
     DirectedGraphNodeInterface,
     StationNode,
 )
-from model.plant import GraphPlant
+from model.plant_graph import GraphPlant
 
 if TYPE_CHECKING:
     from graph.problem import TreeNode

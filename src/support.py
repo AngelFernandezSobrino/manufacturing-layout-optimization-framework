@@ -8,54 +8,56 @@ from model.plant_graph import GraphPlant
 from model.tools import SystemSpecification
 
 
-def populate_next_nodes(
-    node: TreeNode,
-    station_models: dict[str, StationModel],
-    spec: SystemSpecification,
-    # config_repository: set[set[str]],
-):
-    """Generate search tree of possible configurations
+class populate_next_nodes:
 
-    It generates the tree recursively. It creates a new node for each station model that could be placed in the plant, and then calls itself with the new node.
-    To avoid infinite loops, it keeps track of the station models that have already been used in the current branch of the tree.
-    It also keeps track of the configurations that have already been generated, to avoid duplicates.
-    To do so, it uses a set of strings, where each string represents a configuration of the plant. Once the new node is created, it is set as a child of the current node, but the current node is not set as a parent of the new node. Then the function calls itself with the new node as an argument.
-    At the beginning of the function, it creates a new plant from the new node previously created (it only requires child nodes to have their parent defined). Then this plant is compared to the repo and if it is a new configuration that didn't exist the new_node is set as a child of its parent node.
-    Otherwise, the function terminates, and the new node is then distroyed because its reference is lost and its, theoretically, parent didn't have a reference to it.
-    """
-    populate_next_nodes.evaluated_nodes += 1
+    config_repository = [set("")]
+    evaluated_nodes = 0
+    valid_nodes = 0
 
-    plant, station_models_used = (
-        graph_problem.create_plant_from_node_with_station_models_used(node, spec)
-    )
+    @staticmethod
+    def __call__(
+        node: TreeNode,
+        station_models: dict[str, StationModel],
+        spec: SystemSpecification,
+        # config_repository: set[set[str]],
+    ):
+        """Generate search tree of possible configurations
 
-    new_config_set = plant.get_flat_config_set()
+        It generates the tree recursively. It creates a new node for each station model that could be placed in the plant, and then calls itself with the new node.
+        To avoid infinite loops, it keeps track of the station models that have already been used in the current branch of the tree.
+        It also keeps track of the configurations that have already been generated, to avoid duplicates.
+        To do so, it uses a set of strings, where each string represents a configuration of the plant. Once the new node is created, it is set as a child of the current node, but the current node is not set as a parent of the new node. Then the function calls itself with the new node as an argument.
+        At the beginning of the function, it creates a new plant from the new node previously created (it only requires child nodes to have their parent defined). Then this plant is compared to the repo and if it is a new configuration that didn't exist the new_node is set as a child of its parent node.
+        Otherwise, the function terminates, and the new node is then distroyed because its reference is lost and its, theoretically, parent didn't have a reference to it.
+        """
+        populate_next_nodes.evaluated_nodes += 1
 
-    for config_set in populate_next_nodes.config_repository:
-        if new_config_set == config_set:
-            return
+        plant, station_models_used = (
+            graph_problem.create_plant_from_node_with_station_models_used(node, spec)
+        )
 
-    populate_next_nodes.config_repository.append(new_config_set)
-    populate_next_nodes.valid_nodes += 1
+        new_config_set = plant.get_flat_config_set()
 
-    if node.previous is not None:
-        node.previous.next.append(node)
+        for config_set in populate_next_nodes.config_repository:
+            if new_config_set == config_set:
+                return
 
-    available_positions_array = graph_problem.get_available_positions(plant)
+        populate_next_nodes.config_repository.append(new_config_set)
+        populate_next_nodes.valid_nodes += 1
 
-    for position in available_positions_array:
-        for value in station_models.values():
-            if value.name in station_models_used:
-                continue
+        if node.previous is not None:
+            node.previous.next.append(node)
 
-            new_node = TreeNode(value, position, node)
+        available_positions_array = graph_problem.get_available_positions(plant)
 
-            populate_next_nodes(new_node, station_models, spec)
+        for position in available_positions_array:
+            for value in station_models.values():
+                if value.name in station_models_used:
+                    continue
 
+                new_node = TreeNode(value, position, node)
 
-populate_next_nodes.config_repository = [set("")]
-populate_next_nodes.evaluated_nodes = 0
-populate_next_nodes.valid_nodes = 0
+                populate_next_nodes(new_node, station_models, spec)
 
 
 def check_configuration_each_leave(
@@ -147,26 +149,24 @@ def get_random_plant(system_specification: SystemSpecification):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    import matplotlib.axes
-    import matplotlib
-    import pyvisgraph as vg
+    import pyvisgraph as vg  # pylint disable=import-error
 
-    plant = get_random_plant(
+    test_plant = get_random_plant(
         SystemSpecification(model_stream=open("./model.yaml", "r"))
     )
 
-    plant.print()
+    test_plant.print()
 
-    plant.build_vis_graphs()
+    test_plant.build_vis_graphs()
 
-    fig, axes_dict, vis_axes = plant.plot_plant_graph()
+    fig, axes_dict, vis_axes = test_plant.plot_plant_graph()
 
     for station_name, axes in axes_dict.items():
         path_x = []
         path_y = []
 
-        for point in plant._vis_graphs[station_name].shortest_path(
-            vg.Point(0, 0), destination=vg.Point(2, 2)
+        for point in test_plant.shortest_path(
+            station_name, vg.Point(0, 0), vg.Point(2, 2)
         ):
             path_x.append(point.x)
             path_y.append(point.y)
@@ -174,5 +174,6 @@ if __name__ == "__main__":
         axes.plot(path_x, path_y, color="red")
 
     mngr = plt.get_current_fig_manager()
-    mngr.window.attributes("-zoomed", True)
+    if mngr is not None:
+        mngr.window.attributes("-zoomed", True)
     plt.show()

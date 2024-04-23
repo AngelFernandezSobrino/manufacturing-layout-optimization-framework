@@ -29,6 +29,13 @@ class GraphPlant(BasePlant):
         self._poligons: PlantPoligonsPoints = PlantPoligonsPoints([], {})
         self._vis_graphs: dict[StationNameType, vg.VisGraph] = {}
 
+    def shortest_path(
+        self, station_name: StationNameType, point1: vg.Point, point2: vg.Point
+    ) -> list[vg.Point]:
+        return self._vis_graphs[station_name].shortest_path(  # type: ignore
+            vg.Point(0, 0), destination=vg.Point(2, 2)
+        )
+
     def build_vis_graphs(self):
 
         assert not self._not_ready
