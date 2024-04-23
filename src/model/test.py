@@ -4,7 +4,7 @@ import unittest
 import pyvisgraph as vg
 
 from __init__ import GridParams, StationModel, StationModelDict
-from model.plant import Plant, angle_between_two_points
+from model.plant import GraphPlant, angle_between_two_points
 
 
 inout_station_dict: StationModelDict = {
@@ -106,7 +106,7 @@ class TestPointMethods(unittest.TestCase):
             )
         )
         self.longMessage = True
-        plant = Plant(
+        plant = GraphPlant(
             GridParams({"Size": {"X": 5, "Y": 5}, "Measures": {"X": 0.8, "Y": 0.8}})
         )
 

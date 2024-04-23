@@ -14,7 +14,6 @@ pyvis = "^0.3.2"
 flask = "^3.0.2"
 pyvisgraph = "^0.2.1"
 tqdm = "^4.66.2"
-cython = "^3.0.9"
 svg-py = "^1.4.3"
 folium = "^0.16.0"
 matplotlib = "^3.8.4"
@@ -24,13 +23,12 @@ shapely = "^2.0.3"
 line-length = 88
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.8.0"
 types-pyyaml = "^6.0.12.12"
-black = "^23.12.1"
-pylint = "^3.0.3"
 poethepoet = "^0.24.4"
 ipykernel = "^6.29.0"
 pyinstaller = "^6.4.0"
+mypy = "^1.9.0"
+
 
 [build-system]
 requires = ["poetry-core"]

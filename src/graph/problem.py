@@ -3,7 +3,7 @@ import itertools
 
 from graph.process import ManufacturingProcessGraph
 from model import tools
-from model.plant import Plant, path_distance
+from model.plant_graph import GraphPlant, path_distance
 
 from . import (
     TreeNode,
@@ -31,9 +31,9 @@ def get_hash_for_new_node(node: TreeNode, previous_node: TreeNode):
 
 def create_plant_from_node_with_station_models_used(
     node: TreeNode, system_specification: tools.SystemSpecification
-) -> tuple[Plant, set[str]]:
+) -> tuple[GraphPlant, set[str]]:
     grid = system_specification.model.stations.grid
-    plant = Plant(system_specification.model.stations.grid)
+    plant = GraphPlant(system_specification)
     station_models_used: set[str] = set()
     node_evaluated = node
     while True:
@@ -52,7 +52,7 @@ def create_plant_from_node_with_station_models_used(
     return plant, station_models_used
 
 
-def get_available_positions(plant: Plant) -> list[Vector[int]]:
+def get_available_positions(plant: GraphPlant) -> list[Vector[int]]:
 
     available_positions: list[Vector] = []
 
@@ -61,10 +61,10 @@ def get_available_positions(plant: Plant) -> list[Vector[int]]:
     ):
         if plant._grid[y][x] is None:
             if (
-                (y > 0 and plant._grid[y - 1][x] is not None)
-                or (x > 0 and plant._grid[y][x - 1] is not None)
-                or (x < 4 and plant._grid[y][x + 1] is not None)
-                or (y < 4 and plant._grid[y + 1][x] is not None)
+                (y > 0 and plant.__grid[y - 1][x] is not None)
+                or (x > 0 and plant.__grid[y][x - 1] is not None)
+                or (x < 4 and plant.__grid[y][x + 1] is not None)
+                or (y < 4 and plant.__grid[y + 1][x] is not None)
             ):
                 available_positions.append(Vector(x, y))
 
@@ -72,7 +72,7 @@ def get_available_positions(plant: Plant) -> list[Vector[int]]:
 
 
 def get_stations_with_transport_vectors(
-    plant: Plant,
+    plant: GraphPlant,
 ) -> list[Vector]:
 
     transport_vectors: list[Vector] = []
@@ -80,7 +80,7 @@ def get_stations_with_transport_vectors(
     for x, y in itertools.product(
         range(plant._grid_params.size.x), range(plant._grid_params.size.y)
     ):
-        station = plant.get_location_coordinates(x, y)
+        station = plant.get_station_or_null_coord(x, y)
         if station is None:
             continue
         if station.transports is not None:
@@ -107,7 +107,7 @@ def evaluate_robot_penalties(robot: Vector, origin: Vector, destiny: Vector):
 
 
 def check_configuration_v2(
-    plant: Plant,
+    plant: GraphPlant,
     graph: ManufacturingProcessGraph,
 ) -> float:
 
@@ -182,7 +182,7 @@ def check_configuration_v2(
 
 
 def evaluate_plant(
-    plant: Plant,
+    plant: GraphPlant,
     graph: ManufacturingProcessGraph,
 ):
 

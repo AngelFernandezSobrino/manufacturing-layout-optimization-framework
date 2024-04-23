@@ -1,10 +1,14 @@
+""" Graph module
+"""
+
 from __future__ import annotations
 from enum import Enum
 
 # We need a class to represent the edges of the graph, it would contain the part and the destination node
 
-import model as model
-from typing import Any, Generic, List, TypeVar
+from typing import Any, Generic, TypeVar
+
+import model
 
 # We need a class to represent the each node of the graph, it would contain the station and all the directed edges to the other stations
 # Edges may have a part associated
@@ -19,13 +23,24 @@ DirectedGraphEdgeInterface = TypeVar(
 
 
 class DirectedGraphNode(Generic[DirectedGraphEdgeInterface]):
+    """Directed graph node
+
+    Args:
+        Generic (_type_): _description_
+    """
 
     def __init__(self) -> None:
         self.id: str
-        self.edges: List[DirectedGraphEdgeInterface]
+        self.edges: list[DirectedGraphEdgeInterface]
 
 
 class DirectedGraphEdge(Generic[DirectedGraphNodeInterface]):
+    """Directed graph edge
+
+    Args:
+        Generic (_type_): _description_
+    """
+
     def __init__(self) -> None:
         self.id: str
         self.origin: DirectedGraphNodeInterface
@@ -39,20 +54,24 @@ class StationNode(DirectedGraphNode):
     """
 
     def __init__(self, station: model.StationModel) -> None:
+        super().__init__()
         self.id: str = station.name
         self.model: model.StationModel = station
 
-        self.storage_nodes: List[StorageNode] = []
+        self.storage_nodes: list[StorageNode] = []
 
-        self.edges: List[RoutingGraphEdge] = []
+        self.edges: list[RoutingGraphEdge] = []
 
         self.place: model.Vector[int]
 
         self.center_position: model.Vector[float]
 
+        self.position = model.Vector(0, 0)
+
         self.generate_storage_nodes()
 
     def generate_storage_nodes(self) -> None:
+        """Generate storage nodes"""
         if self.model.storages is None:
             return
 
@@ -62,9 +81,17 @@ class StationNode(DirectedGraphNode):
             self.storage_nodes.append(storage_node)
 
     def reset_position(self) -> None:
+        """Reset node position"""
         self.position = model.Vector(0, 0)
 
     def set_position(self, x: int, y: int, grid_params: model.GridParams) -> None:
+        """Set node position
+
+        Args:
+            x (int): _description_
+            y (int): _description_
+            grid_params (model.GridParams): _description_
+        """
         self.position = model.Vector(x, y)
         self.place = model.Vector(x, y)
         self.center_position = model.Vector(
@@ -86,19 +113,25 @@ class StorageNode(DirectedGraphNode):
     """
 
     def __init__(self, storage: model.Storage, station: StationNode) -> None:
+        super().__init__()
         self.id: str = f"{station.model.name} {storage.id}"
         self.model: model.Storage = storage
 
         self.parent_station: StationNode = station
 
-        self.edges: List[RoutingGraphEdge] = []
-        self.pathing_edges: List[PathEdge] = []
+        self.edges: list[RoutingGraphEdge] = []
+        self.pathing_edges: list[PathEdge] = []
 
         self.relative_position: model.Vector[float] = model.Vector(
             storage.position.x, storage.position.y
         )
 
     def absolute_position(self) -> model.Vector[float]:
+        """Get de absolute position of the storage node in the plant grid
+
+        Returns:
+            model.Vector[float]: _description_
+        """
         return self.parent_station.position + self.relative_position
 
     def __str__(self) -> str:
@@ -128,7 +161,7 @@ class RoutingGraphEdge(DirectedGraphEdge):
         self.id: str = f"{part}"
 
         if transport.model.transports is None:
-            raise Exception("Transport station has no transports")
+            raise ValueError("Transport station has no transports")
 
         self.transport = transport
         self.storage = storage
@@ -148,7 +181,7 @@ class RoutingGraphEdge(DirectedGraphEdge):
 
     def __eq__(self, __other: Any) -> bool:
         if not isinstance(__other, RoutingGraphEdge):
-            raise NotImplemented
+            raise NotImplementedError
 
         if (
             self.id == __other.id
@@ -164,7 +197,7 @@ class RoutingGraphEdge(DirectedGraphEdge):
 class PathEdge(DirectedGraphEdge):
 
     def __init__(self, part: str, origin: StorageNode, destiny: StorageNode) -> None:
-
+        super().__init__()
         self.id = f"{part}"
 
         self.origin: StorageNode = origin
@@ -180,7 +213,7 @@ class PathEdge(DirectedGraphEdge):
 
     def __eq__(self, __other: Any) -> bool:
         if not isinstance(__other, PathEdge):
-            raise NotImplemented
+            raise NotImplementedError
 
         if (
             self.id == __other.id
@@ -203,7 +236,7 @@ class TreeNode:
         self, station: model.StationModel, position: model.Vector[int], previous_node
     ) -> None:
 
-        self.next: List[TreeNode] = []
+        self.next: list[TreeNode] = []
         self.previous: TreeNode | None = previous_node
 
         self.station: model.StationModel = station

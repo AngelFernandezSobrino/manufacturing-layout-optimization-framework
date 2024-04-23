@@ -157,14 +157,18 @@ class ManufacturingProcessGraph:
 
     def print(self) -> None:
 
-        print(f"Parts to be produced: { " ".join(self.parts_to_be_produced)}")
-        print(f"Activities to be executed: { " ".join(self.activities_to_be_executed)}")
-        
-        station_producing_objectives_names = [str(model) for model in self.stations_producing_objectives]
-        print(f"Stations producing objectives: { " ".join(station_producing_objectives_names)}")
+        print(f"Parts to be produced: { ' '.join(self.parts_to_be_produced)}")
+        print(f"Activities to be executed: { ' '.join(self.activities_to_be_executed)}")
+
+        station_producing_objectives_names = [
+            str(model) for model in self.stations_producing_objectives
+        ]
+        print(
+            f"Stations producing objectives: { ' '.join(station_producing_objectives_names)}"
+        )
 
         station_nodes_names = [str(node) for node in self.station_nodes]
-        print(f"Nodes: { " ".join(station_nodes_names)}")
+        print(f"Nodes: { ' '.join(station_nodes_names)}")
 
         self.print_directed_graph_table(self.station_nodes)
 
@@ -229,10 +233,9 @@ class ManufacturingProcessGraph:
 
 
 if __name__ == "__main__":
-    import src.model.tools
-    from pathlib import Path
+    import model.tools
 
-    spec = src.model.tools.SystemSpecification()
+    spec = model.tools.SystemSpecification()
 
     flowGraph = ManufacturingProcessGraph(spec.model)
 

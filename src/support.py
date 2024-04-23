@@ -1,17 +1,16 @@
 import random
-from typing import Dict
 from graph import TreeNode
 from graph.process import ManufacturingProcessGraph
 from model import StationModel
 
 import graph.problem as graph_problem
-from model.plant import Plant
+from model.plant_graph import GraphPlant
 from model.tools import SystemSpecification
 
 
 def populate_next_nodes(
     node: TreeNode,
-    station_models: Dict[str, StationModel],
+    station_models: dict[str, StationModel],
     spec: SystemSpecification,
     # config_repository: set[set[str]],
 ):
@@ -115,7 +114,7 @@ check_configuration_each_leave.count_of_checked_configurations = 0
 
 def get_random_plant(system_specification: SystemSpecification):
 
-    plant = Plant(system_specification.model.stations.grid)
+    plant = GraphPlant(system_specification.model.stations.grid)
     station_models_used: set[str] = set()
 
     plant._grid[0][2] = system_specification.model.stations.models["InOut"]
