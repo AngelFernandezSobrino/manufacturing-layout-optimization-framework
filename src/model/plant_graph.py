@@ -14,12 +14,6 @@ class GraphPlant(BasePlant):
     """
     Represents a graph-based plant in a smart factory system.
 
-    Args:
-        system_spec (SystemSpecification): The system specification for the plant.
-
-    Attributes:
-        _poligons (PlantPoligonsPoints): The polygons representing the plant's obstacles and robot stations.
-        _vis_graphs (dict[StationNameType, vg.VisGraph]): The visibility graphs for each transport station.
     """
 
     def __init__(self, system_spec: SystemSpecification) -> None:
@@ -45,7 +39,7 @@ class GraphPlant(BasePlant):
             range(self._grid_params.size.x), range(self._grid_params.size.y)
         ):
 
-            station = self.__grid[y][x]
+            station = self._grid[y][x]
 
             if station is None:
                 continue
@@ -72,7 +66,7 @@ class GraphPlant(BasePlant):
         for x, y in itertools.product(
             range(self._grid_params.size.x), range(self._grid_params.size.y)
         ):
-            station = self.__grid[y][x]
+            station = self._grid[y][x]
             if station is None:
                 continue
             if station.transports is None:

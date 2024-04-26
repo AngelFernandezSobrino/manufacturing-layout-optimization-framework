@@ -36,7 +36,7 @@ class populate_next_nodes:
             graph_problem.create_plant_from_node_with_station_models_used(node, spec)
         )
 
-        new_config_set = plant.get_flat_config_set()
+        new_config_set = plant.get_config_set()
 
         for config_set in populate_next_nodes.config_repository:
             if new_config_set == config_set:
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         SystemSpecification(model_stream=open("./model.yaml", "r"))
     )
 
-    test_plant.print()
+    test_plant.render()
 
     test_plant.build_vis_graphs()
 

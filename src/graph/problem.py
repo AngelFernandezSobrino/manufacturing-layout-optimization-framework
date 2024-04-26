@@ -38,7 +38,9 @@ def create_plant_from_node_with_station_models_used(
     node_evaluated = node
     while True:
 
-        plant.set_station_location(node_evaluated.position, node_evaluated.station)
+        plant.set_station_location_by_name(
+            node_evaluated.position, node_evaluated.station
+        )
 
         station_models_used.add(node_evaluated.station.name)
 
@@ -61,10 +63,10 @@ def get_available_positions(plant: GraphPlant) -> list[Vector[int]]:
     ):
         if plant._grid[y][x] is None:
             if (
-                (y > 0 and plant.__grid[y - 1][x] is not None)
-                or (x > 0 and plant.__grid[y][x - 1] is not None)
-                or (x < 4 and plant.__grid[y][x + 1] is not None)
-                or (y < 4 and plant.__grid[y + 1][x] is not None)
+                (y > 0 and plant._grid[y - 1][x] is not None)
+                or (x > 0 and plant._grid[y][x - 1] is not None)
+                or (x < 4 and plant._grid[y][x + 1] is not None)
+                or (y < 4 and plant._grid[y + 1][x] is not None)
             ):
                 available_positions.append(Vector(x, y))
 

@@ -105,7 +105,7 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
             status["best_performance_node"], spec
         )
 
-        plant.print()
+        plant.render()
 
         print("Best performance ratio: " + str(status["best_performance_ratio"]))
         print("Best performance node: " + str(status["best_performance_node"]))

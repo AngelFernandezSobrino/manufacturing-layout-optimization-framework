@@ -1,62 +1,101 @@
+import stat
 from typing import Literal
-from model import StationModel, StationNameType, Vector
+from model import StationNameType, Vector
 from model.plant import BasePlant
 from model.tools import SystemSpecification
 
 
 class RearrangmentPlant(BasePlant):
 
-    def move_coord_to_another_coord(self, x1: int, y1: int, x2: int, y2):
-        """Moves a station from one position to another
+    def move_station(
+        self, station_name: StationNameType, destiny: Vector[int] | Literal["store"]
+    ):
+        """Moves a station to a new position
 
-        It will check if the movement is possible and then move the station to the new position
+        It will check if the movement is possible and then move the station to the new position. If it's doing a store operation it will move the station to the storage buffer. Then, the storage place will be returned.
+
+        If it's doing a move operation, it will return the previous position of the station.
         """
-        for x in range(self._grid_params.size.x - 1, x2, -1):
-            if self.get_station_name_or_null_coord(x, y2) is None:
-                continue
-            raise UnsolvableError(f"Station at {x2},{y2} is not None")
+        if destiny == "store":
+            return self.store(station_name)
 
-        station = self.get_and_remove_coord(x1, y1)
-        self.set_station_location(Vector(x2, y2), station.name)
+        else:
+            return self.move(station_name, destiny)
 
-        return station.name
+    def store(self, station_name: StationNameType) -> int:
+        raise NotImplementedError()
+
+    def move(
+        self, station_name: StationNameType, destiny: Vector[int]
+    ) -> Vector[int] | int:
+        raise NotImplementedError()
 
 
-class RearrangmentPlantInfiniteStorage(RearrangmentPlant):
+class RearrangmentPlantStorage(RearrangmentPlant):
     def __init__(self, system_spec: SystemSpecification) -> None:
         super().__init__(system_spec)
-        self.storage_buffer: list[StationModel | None] = []
+        self.storage_buffer: list[StationNameType | None] = []
+        self.storage_buffer_cursor: int = 0
 
-    def move_station_to_storage_buffer_coord(self, x: int, y: int):
+    def store(self, station_name: StationNameType) -> int:
         """Moves a station from the plant to the storage buffer
 
-        Returns the number of stations in the storage buffer
+        Returns the storage index
         """
-        station = self.get_and_remove_coord(x, y)
+        actual_position = self._station_locations[station_name]
 
-        self.storage_buffer.append(station)
-        self.__stations[station.name] = len(self.storage_buffer) - 1
+        if isinstance(actual_position, int):
+            raise UnsolvableError(
+                f"Station {station_name} is already in the storage buffer"
+            )
 
-        return station.name, len(self.storage_buffer) - 1
+        self._grid[actual_position.y][actual_position.x] = None
 
-    def move_station_from_buffer_to_coord(
-        self, station_name: StationNameType, x: int, y: int
-    ):
+        if self.storage_buffer_cursor >= len(self.storage_buffer):
+            self.storage_buffer.append(station_name)
+        else:
+            self.storage_buffer[self.storage_buffer_cursor] = station_name
 
-        assert self.is_empty_coord(x, y), f"Station at {x},{y} is not None"
+        self._station_locations[station_name] = self.storage_buffer_cursor
 
-        for index, station in enumerate(self.storage_buffer):
-            if station is not None and station.name == station_name:
-                self.set_station_location(Vector(x, y), station.name)
-                self.storage_buffer[index] = None
-                return index
-        raise UnsolvableError(f"Station {station_name} not found in storage buffer")
+        result = self.storage_buffer_cursor
+
+        while True:
+            if self.storage_buffer_cursor == len(self.storage_buffer):
+                break
+
+            if self.storage_buffer[self.storage_buffer_cursor] is not None:
+                self.storage_buffer_cursor += 1
+            else:
+                break
+
+        return result
+
+    def move(self, station_name: StationNameType, destiny: Vector[int]):
+        """Moves a station to some location in the plant"""
+        assert self.is_empty_by_coord(
+            destiny.x, destiny.y
+        ), f"Station at {destiny} is not None"
+
+        previous_position = self._station_locations[station_name]
+
+        self._grid[destiny.y][destiny.x] = self._station_models[station_name]
+        self._station_locations[station_name] = destiny
+
+        # If the station is on the storage buffer we have to clean the storage buffer, otherwise we have to clean the grid position
+        if isinstance(previous_position, int):
+            self.storage_buffer[previous_position] = None
+            self.storage_buffer_cursor = previous_position
+        else:
+            self._grid[previous_position.y][previous_position.x] = None
+
+        return previous_position
 
 
-class RearrangmentPlantLimitedStorage(RearrangmentPlant):
+class RearrangmentPlantLimitedStorage(RearrangmentPlantStorage):
     def __init__(self, system_spec: SystemSpecification, buffer_size: int) -> None:
         super().__init__(system_spec)
-        self.storage_buffer: list[StationModel | None] = [
+        self.storage_buffer: list[StationNameType | None] = [
             None for _ in range(buffer_size)
         ]
 
@@ -65,21 +104,28 @@ class RearrangmentPlantLimitedStorage(RearrangmentPlant):
     def is_storage_buffer_full(self):
         return self.storage_buffer_cursor == len(self.storage_buffer)
 
-    def move_station_to_storage_buffer_coord(self, x: int, y: int):
+    def store(self, station_name: StationNameType) -> int:
         """Moves a station from the plant to the storage buffer
 
-        Returns the number of stations in the storage buffer
+        Returns the storage index
         """
-        if self.storage_buffer_cursor >= len(self.storage_buffer):
-            raise UnsolvableError("Storage buffer is not big enough")
+        actual_position = self._station_locations[station_name]
 
-        station = self.get_and_remove_coord(x, y)
+        if isinstance(actual_position, int):
+            raise UnsolvableError(
+                f"Station {station_name} is already in the storage buffer"
+            )
 
-        result = station.name, self.storage_buffer_cursor
+        self._grid[actual_position.y][actual_position.x] = None
 
-        self.storage_buffer[self.storage_buffer_cursor] = station
+        if self.is_storage_buffer_full():
+            raise UnsolvableError(f"Storage buffer is full, can't store {station_name}")
 
-        self.storage_buffer_cursor += 1
+        self.storage_buffer[self.storage_buffer_cursor] = station_name
+
+        self._station_locations[station_name] = self.storage_buffer_cursor
+
+        result = self.storage_buffer_cursor
 
         while True:
             if self.storage_buffer_cursor == len(self.storage_buffer):
@@ -91,69 +137,6 @@ class RearrangmentPlantLimitedStorage(RearrangmentPlant):
                 break
 
         return result
-
-    def move_station_from_buffer_to_coord(
-        self, station_name: StationNameType, x: int, y: int
-    ):
-        assert self.is_empty_coord(x, y), f"Station at {x},{y} is not None"
-
-        for index, station in enumerate(self.storage_buffer):
-            if station is not None and station.name == station_name:
-                self.set_station_location(station.name, Vector(x, y))
-                self.storage_buffer[index] = None
-                self.storage_buffer_cursor = index
-                return index
-
-        raise UnsolvableError(f"Station {station_name} not found in storage buffer")
-
-    def move_station_to_storage_buffer(self, station_name: StationNameType):
-        """Moves a station from the plant to the storage buffer
-
-        Returns the number of stations in the storage buffer
-        """
-        if self.storage_buffer_cursor >= len(self.storage_buffer):
-            raise UnsolvableError("Storage buffer is not big enough")
-
-        self.set_station_location()
-
-        result = station.name, self.storage_buffer_cursor
-
-        self.storage_buffer[self.storage_buffer_cursor] = station
-
-        self.storage_buffer_cursor += 1
-
-        while True:
-            if self.storage_buffer_cursor == len(self.storage_buffer):
-                break
-
-            if self.storage_buffer[self.storage_buffer_cursor] is not None:
-                self.storage_buffer_cursor += 1
-            else:
-                break
-
-        return result
-
-    def move_station_from_buffer(self, station_name: StationNameType, x: int, y: int):
-        assert self.is_empty_coord(x, y), f"Station at {x},{y} is not None"
-
-        for index, station in enumerate(self.storage_buffer):
-            if station is not None and station.name == station_name:
-                self.set_station_location(Vector(x, y), station.name)
-                self.storage_buffer[index] = None
-                self.storage_buffer_cursor = index
-                return index
-
-        raise UnsolvableError(f"Station {station_name} not found in storage buffer")
-
-    # It is required to have a method than can move a station to any other place, either to the plant or to the storage buffer, and return the new position of the station.
-
-    def move_station(
-        self, station_name: StationNameType, destiny: Vector[int] | Literal["store"]
-    ):
-        if destiny == "store":
-            return self.move_station_to_storage_buffer_coord(station_name)
-        else:
-            return self.move_station_to_plant(station_name, destiny)
 
 
 class UnsolvableError(Exception):

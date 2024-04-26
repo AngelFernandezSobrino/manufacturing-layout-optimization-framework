@@ -53,7 +53,7 @@ from __future__ import annotations
 
 import copy
 import itertools
-from typing import Any, Optional
+from typing import Any, Mapping, Optional, overload
 import prettytable
 
 from model import StationModel, StationNameType, Vector
@@ -70,25 +70,23 @@ class BasePlant(object):
     def __init__(self, system_spec: SystemSpecification) -> None:
         """Model of the 2D distribution of the stations in the plant
 
-        It requires to be associated to a system specification to configure the plant data structure. Furthermore, the spec models are referenced in the plant distribution data structure, so the stations models can be directly accessed from the plant data structure.
+        It requires to be associated to a system specification to configure the plant data structure. Furthermore, the spec models are referenced in the plant distribution data structure, so the stations models can be directly accessed from the plant data structure. Until all the stations are placed in the plant, the plant is not ready and other methods other than placing stations should not be used.
 
         It implements the iterator protocol to iterate over the plant stations. The iterator returns a tuple with the position of the station and the station model.
-
-        It can't be used until the ready method is called, as it is used to signal that the plant modelsg
-
         """
-        self._grid_params = system_spec.model.stations.grid
         self._system_spec = system_spec
+        self._grid_params = system_spec.model.stations.grid
+        self._station_models = system_spec.model.stations.models
 
         # To export and import plant configurations
         self.__config: list[tuple[Vector[int], StationNameType]] = []
 
-        self.__grid: list[list[Optional[StationModel]]] = [
+        self._grid: list[list[Optional[StationModel]]] = [
             [None for x in range(self._grid_params.size.x)]
             for y in range(self._grid_params.size.y)
         ]
 
-        self.__stations: dict[StationNameType, Vector[int] | int] = {
+        self._station_locations: dict[StationNameType, Vector[int] | int] = {
             station_name: Vector(-1, -1)
             for station_name in self._system_spec.model.stations.models.keys()
         }
@@ -97,100 +95,67 @@ class BasePlant(object):
 
     # pylint: disable=missing-function-docstring
 
-    def __iter__(self):
-        return GridIterator(self.__grid).__iter__()
+    def grid_iterator(self):
+        return GridIterator(self._grid).__iter__()
 
-    def station_position(self, name: StationNameType):
-        return copy.copy(self.__stations[name])
-
-    def set_station_location(self, name: StationNameType, position: Vector[int]):
-
-        assert (
-            self.__grid[position.y][position.x] is None
-        ), f"Station at {position} is not None, {name} can't be placed there"
-
-        self.__grid[position.y][position.x] = self._system_spec.model.stations.models[
-            name
-        ]
-
-        self.__stations[name] = position
-
-    def get_and_remove(self, position: Vector[int]) -> StationModel:
-        """
-        Retrieves the station at the specified position in the grid and removes it from the grid.
-
-        Args:
-            position (Vector[int]): The position of the station in the grid.
-
-        Returns:
-            StationModel: The station object at the specified position.
-
-        Raises:
-            AssertionError: If the station at the specified position is None.
-        """
-        station = self.__grid[position.y][position.x]
-        assert station is not None
-        self.__grid[position.y][position.x] = None
-        self.__stations[station.name] = Vector(-1, -1)
-        return station
-
-    def get_and_remove_coord(self, x: int, y: int) -> StationModel:
-        station = self.__grid[y][x]
-        assert station is not None, f"Station at {x},{y} is None"
-        self.__grid[y][x] = None
-        self.__stations[station.name] = Vector(-1, -1)
-        return station
+    def stations(self) -> Mapping[StationNameType, Vector[int] | int]:
+        return self._station_locations
 
     def ready(self):
         self._not_ready = False
 
-    def search_by_name(self, station_name: StationNameType):
-        for x, y in itertools.product(
-            range(self._grid_params.size.x), range(self._grid_params.size.y)
-        ):
-            station = self.__grid[y][x]
-            if station is None:
-                continue
+    @overload
+    def __getitem__(self, key: Vector[int]) -> Optional[StationModel]: ...
 
-            if station.name == station_name:
-                return Vector(x, y)
+    @overload
+    def __getitem__(self, key: int) -> list[Optional[StationModel]]: ...
 
-        raise ValueError(f"Station {station_name} not found")
+    def __getitem__(
+        self, key: int | Vector[int]
+    ) -> Optional[StationModel] | list[Optional[StationModel]]:
+        if isinstance(key, int):
+            return self._grid[key]
+        return self._grid[key.y][key.x]
 
-    def get_station_or_null_coord(self, x: int, y: int) -> Optional[StationModel]:
-        return self.__grid[y][x]
+    def set_station_location_by_name(
+        self, name: StationNameType, position: Vector[int]
+    ):
 
-    def get_station_coord(self, x: int, y: int) -> StationModel:
-        station = self.__grid[y][x]
+        station_location = self._station_locations[name]
+
+        assert (
+            self._grid[position.y][position.x] is None
+        ), f"Station at {position} is occupied by {self._grid[position.y][position.x]}, {name} can't be placed there"
+
+        assert not isinstance(
+            station_location, int
+        ), f"Station {name} is in storage buffer, this method can't be used"
+
+        assert (
+            station_location.x == -1
+        ), f"Station {name} has been already placed. Moving methods should be used instead"
+
+        self._grid[position.y][position.x] = self._station_models[name]
+        self._station_locations[name] = position
+
+    def get_station_location_by_name(self, name: StationNameType):
+        return copy.copy(self._station_locations[name])
+
+    def get_station_by_coord(self, x: int, y: int) -> StationModel:
+        station = self._grid[y][x]
         assert station is not None, f"Station at {x},{y} is None"
         return station
 
-    def is_empty_coord(self, x: int, y: int):
-        return self.__grid[y][x] is None
+    def is_empty_by_coord(self, x: int, y: int):
+        return self._grid[y][x] is None
 
-    def is_empty(self, position: Vector[int]):
-        return self.__grid[position.y][position.x] is None
-
-    def get_station_name_coord(self, x: int, y: int):
-        station = self.__grid[y][x]
-        if station is None:
-            raise ValueError(f"Station at {x},{y} is None")
-        return station.name
-
-    def get_station_name_or_null_coord(self, x: int, y: int):
-        station = self.__grid[y][x]
-        return station.name if station is not None else None
+    def is_empty_by_vector(self, position: Vector[int]):
+        return self._grid[position.y][position.x] is None
 
     def grid_compare(self, other: BasePlant):
         """Gets another plant and compares it with the current plant
 
         It returns a grid array with the comparison of the two plants. If the two plants have the same content at an specific position, the value at that position is True, otherwise it is False.
-
-        Args:
-            other (Plant): _description_
-
-        Returns:
-            bool: _description_
         """
         result: list[list[bool]] = [
             [True for x in range(self._grid_params.size.x)]
@@ -200,8 +165,13 @@ class BasePlant(object):
         for y, x in itertools.product(
             range(self._grid_params.size.y), range(self._grid_params.size.x)
         ):
-            own_station = self.__grid[y][x]
-            other_station_name = other.get_station_name_or_null_coord(x, y)
+            own_station = self._grid[y][x]
+
+            other_station_name = (
+                None
+                if other.is_empty_by_coord(x, y)
+                else other.get_station_by_coord(x, y).name
+            )
 
             if own_station is None and other_station_name is None:
                 continue
@@ -217,77 +187,40 @@ class BasePlant(object):
 
         return result
 
-    def get_flat_config_set(self):
-        """_summary_
+    def get_config_set(self):
+        """Get a set with string of the plant configuration, containing the station name and the position
 
-        Returns:
-            _type_: _description_
+        It can be used to fast compare two plant configurations for equality, to check if a plant configuration is already existing in a set.
         """
 
         hash_set: set[str] = set()
 
-        for x, y in itertools.product(
-            range(self._grid_params.size.x), range(self._grid_params.size.y)
-        ):
-            if self.__grid[y][x] is None:
+        for station_name, location in self._station_locations.items():
+            if isinstance(location, Vector) and location.x == -1:
                 continue
 
-            hash_set.add(f"{self.__grid[y][x].name}({x},{y})")
+            hash_set.add(
+                f"{station_name}" + f"({location.x},{location.y})"
+                if isinstance(location, Vector)
+                else f"({str(location)}"
+            )
 
         return hash_set
 
-    def _update_config(self):
-        for y, x in itertools.product(
-            range(self._grid_params.size.y), range(self._grid_params.size.x)
-        ):
-            if self.__grid[y][x] is None:
-                continue
-            self.__config.append((Vector(x, y), self.__grid[y][x].name))  # type: ignore
-
     def export_config(self):
-        """_summary_
-
-        Returns:
-            _type_: _description_
-        """
-        self._update_config()
+        self.__config = []
+        for station_name, position in self._station_locations.items():
+            self.__config.append((position, station_name))  # type: ignore
         return self.__config
 
     def import_config(self, config: PlantConfigType):
-        """_summary_
-
-        Args:
-            config (PlantConfigType): _description_
-        """
         self.__config = copy.deepcopy(config)
         for position, station_name in self.__config:
-            self.set_station_location(
-                position, self._system_spec.model.stations.models[station_name].name
+            self.set_station_location_by_name(
+                self._system_spec.model.stations.models[station_name].name, position
             )
 
-    def hash(self):
-        """_summary_
-
-        Returns:
-            _type_: _description_
-        """
-        plant_hash = ""
-
-        for y, x in itertools.product(
-            range(self._grid_params.size.y), range(self._grid_params.size.x)
-        ):
-            if self.__grid[y][x] is None:
-                continue
-            plant_hash += f"{self.__grid[y][x].name}({x},{y})"  # type: ignore
-
-        return plant_hash
-
-    def print(self, width=15):
-        """_summary_
-
-        Args:
-            width (int, optional): _description_. Defaults to 15.
-        """
+    def render(self, width=15):
         table = prettytable.PrettyTable()
         column_names = [""] + list(map(str, range(1, self._grid_params.size.x + 1)))
         table_width: dict[str, int] = {}
@@ -295,14 +228,13 @@ class BasePlant(object):
         for name in column_names:
             table_width[name] = width
         table.field_names = column_names
-        # table.max_width = table_width
         table._min_width = table_width  # pylint: disable=protected-access
 
-        for row_index, row in enumerate(self.__grid):
+        for row_index, row in enumerate(self._grid):
             shown_row = [value if value is not None else "" for value in row]
             table.add_row([chr(ord("@") + row_index + 1), *shown_row])
 
-        print(table)
+        return table
 
 
 class GridIterator:
@@ -334,3 +266,11 @@ class GridIterator:
 
 
 PlantConfigType = list[tuple[Vector[int], StationNameType]]
+
+# Errors
+
+# Destiny location not empty
+
+
+class NonEmptyLocationError(Exception):
+    pass
