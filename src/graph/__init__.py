@@ -30,8 +30,9 @@ class DirectedGraphNode(Generic[DirectedGraphEdgeInterface]):
     """
 
     def __init__(self) -> None:
-        self.id: str
-        self.edges: list[DirectedGraphEdgeInterface]
+        self.id: str = ""
+        self.outgoing_edges: list[DirectedGraphEdgeInterface] = []
+        self.incoming_edges: list[DirectedGraphEdgeInterface] = []
 
 
 class DirectedGraphEdge(Generic[DirectedGraphNodeInterface]):
@@ -42,7 +43,7 @@ class DirectedGraphEdge(Generic[DirectedGraphNodeInterface]):
     """
 
     def __init__(self) -> None:
-        self.id: str
+        self.id: str = ""
         self.origin: DirectedGraphNodeInterface
         self.destiny: DirectedGraphNodeInterface
 

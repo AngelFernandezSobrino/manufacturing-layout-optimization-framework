@@ -16,11 +16,16 @@ class RearrangmentPlant(BasePlant):
 
         If it's doing a move operation, it will return the previous position of the station.
         """
+
+        print(
+            f"move_station: Moving {station_name} from {self._station_locations[station_name]} to {destiny}"
+        )
+
         if destiny == "store":
-            return self.store(station_name)
+            return (self._station_locations[station_name], self.store(station_name))
 
         else:
-            return self.move(station_name, destiny)
+            return (self.move(station_name, destiny), destiny)
 
     def store(self, station_name: StationNameType) -> int:
         raise NotImplementedError()

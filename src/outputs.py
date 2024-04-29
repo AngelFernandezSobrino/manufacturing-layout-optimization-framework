@@ -59,7 +59,7 @@ def export_directed_graph(
         )
 
     for node in nodes:
-        for edge in node.edges:
+        for edge in node.outgoing_edges:
             graph_generator.add_edge(
                 str(get_origin_id(edge)),
                 str(get_destiny_id(edge)),

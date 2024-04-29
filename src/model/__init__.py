@@ -41,6 +41,9 @@ class Vector(Generic[IntOrFloat]):
     def __repr__(self) -> str:
         return self.__str__()
 
+    def equal(self, __value: Vector[IntOrFloat]) -> bool:
+        return self.x == __value.x and self.y == __value.y
+
     def __add__(self, __value: Vector[float]) -> Vector[float]:
         return Vector(self.x + __value.x, self.y + __value.y)
 
