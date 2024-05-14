@@ -1,16 +1,10 @@
 from io import TextIOWrapper
 import sys
-
-sys.path.append("./src/")
-sys.path.append("./")
-
-import model
 import outputs
 from graph import TreeNode
+from graph import problem as graph_problem
 from graph.process import ManufacturingProcessGraph
 from model import Vector
-
-from graph import problem as graph_problem
 from model import tools as model_tools
 from support import (
     check_configuration_each_leave,
@@ -66,8 +60,7 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
         + str(populate_next_nodes.evaluated_nodes - populate_next_nodes.valid_nodes)
     )
 
-    status = {"best_performance_ratio": 9999999999.0, "best_performance_node": None}
-    check_configuration_each_leave(first_node, status, flow_graph, spec)
+    check_configuration_each_leave(first_node, flow_graph, spec)
 
     print("Configurations checked")
 
@@ -100,15 +93,21 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
         + str(check_configuration_each_leave.count_of_checked_configurations)
     )
 
-    if status["best_performance_node"]:
+    if check_configuration_each_leave.best_performance_node:
         plant, _ = graph_problem.create_plant_from_node_with_station_models_used(
-            status["best_performance_node"], spec
+            check_configuration_each_leave.best_performance_node, spec
         )
 
         plant.render()
 
-        print("Best performance ratio: " + str(status["best_performance_ratio"]))
-        print("Best performance node: " + str(status["best_performance_node"]))
+        print(
+            "Best performance ratio: "
+            + str(check_configuration_each_leave.best_performance_ratio)
+        )
+        print(
+            "Best performance node: "
+            + str(check_configuration_each_leave.best_performance_node)
+        )
 
     else:
         print("No valid configuration found")
@@ -129,6 +128,6 @@ def export(first_node, flow_graph: ManufacturingProcessGraph):
 
 if __name__ == "__main__":
 
-    model_file = open("./model.yaml", "r")
+    model_file = open("./model.yaml", "r", encoding="utf8")
 
     process(model_stream=model_file)

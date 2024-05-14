@@ -2,7 +2,7 @@ from __future__ import annotations
 import itertools
 
 from graph.process import ManufacturingProcessGraph
-from model import tools
+from model import GridParams, tools
 from model.plant_graph import GraphPlant, path_distance
 
 from . import (
@@ -32,14 +32,13 @@ def get_hash_for_new_node(node: TreeNode, previous_node: TreeNode):
 def create_plant_from_node_with_station_models_used(
     node: TreeNode, system_specification: tools.SystemSpecification
 ) -> tuple[GraphPlant, set[str]]:
-    grid = system_specification.model.stations.grid
     plant = GraphPlant(system_specification)
     station_models_used: set[str] = set()
     node_evaluated = node
     while True:
 
         plant.set_station_location_by_name(
-            node_evaluated.position, node_evaluated.station
+            node_evaluated.station.name, node_evaluated.position
         )
 
         station_models_used.add(node_evaluated.station.name)
@@ -91,7 +90,7 @@ def get_stations_with_transport_vectors(
     if len(transport_vectors) > 0:
         return transport_vectors
 
-    raise Exception("Robot not found")
+    return []
 
 
 # Now we have the function to check if a configuration is valid or not, we can check all the configurations

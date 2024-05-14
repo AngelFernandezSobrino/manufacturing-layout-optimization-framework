@@ -1,11 +1,10 @@
 import random
 from graph import TreeNode
 from graph.process import ManufacturingProcessGraph
-from model import StationModel
-
-import graph.problem as graph_problem
+from model import StationModel, Vector
 from model.plant_graph import GraphPlant
 from model.tools import SystemSpecification
+import graph.problem as graph_problem
 
 
 class populate_next_nodes:
@@ -15,7 +14,8 @@ class populate_next_nodes:
     valid_nodes = 0
 
     @staticmethod
-    def __call__(
+    def __new__(
+        cls,
         node: TreeNode,
         station_models: dict[str, StationModel],
         spec: SystemSpecification,
@@ -60,66 +60,69 @@ class populate_next_nodes:
                 populate_next_nodes(new_node, station_models, spec)
 
 
-def check_configuration_each_leave(
-    node: TreeNode,
-    status: dict,
-    flow_graph: ManufacturingProcessGraph,
-    spec: SystemSpecification,
-):
+class check_configuration_each_leave:
 
-    if not len(node.next):
-        plant, _ = graph_problem.create_plant_from_node_with_station_models_used(
-            node, spec
-        )
+    count_of_valid_configurations = 0
+    count_of_total_configurations = 0
+    count_error_configurations = 0
+    other_config_values: list = []
+    count_of_checked_configurations = 0
+    best_performance_ratio = 999999999999999.9
+    best_performance_node: TreeNode | None = None
 
-        check_configuration_each_leave.count_of_total_configurations += 1
-        try:
+    @staticmethod
+    def __new__(
+        cls,
+        node: TreeNode,
+        flow_graph: ManufacturingProcessGraph,
+        spec: SystemSpecification,
+    ):
+
+        if len(node.next) < 1:
+            plant, _ = graph_problem.create_plant_from_node_with_station_models_used(
+                node, spec
+            )
+
+            check_configuration_each_leave.count_of_total_configurations += 1
+
             result = graph_problem.check_configuration_v2(plant, flow_graph)
+
             if result:
                 # print("Configuration valid")
                 check_configuration_each_leave.count_of_valid_configurations += 1
             else:
+                check_configuration_each_leave.count_error_configurations += 1
                 return False
-        except Exception as e:
-            check_configuration_each_leave.count_error_configurations += 1
-            return False
 
-        check_configuration_each_leave.count_of_checked_configurations += 1
+            check_configuration_each_leave.count_of_checked_configurations += 1
 
-        if result < status["best_performance_ratio"]:
-            status["best_performance_ratio"] = result
-            status["best_performance_node"] = node
+            if result < check_configuration_each_leave.best_performance_ratio:
+                check_configuration_each_leave.best_performance_ratio = result
+                check_configuration_each_leave.best_performance_node = node
 
-        return
+            return True
 
-    for next_node in node.next:
-        check_configuration_each_leave(next_node, status, flow_graph, spec)
+        for next_node in node.next:
+            check_configuration_each_leave(next_node, flow_graph, spec)
 
-    at_least_one_valid = False
+        at_least_one_valid = False
 
-    for index in range(len(node.next) - 1, -1, -1):
-        # print(f"Checking {index}")
-        if check_configuration_each_leave(node.next[index], status, flow_graph, spec):
-            at_least_one_valid = True
-        else:
-            del node.next[index]
+        for index in range(len(node.next) - 1, -1, -1):
+            # print(f"Checking {index}")
+            if check_configuration_each_leave(node.next[index], flow_graph, spec):
+                at_least_one_valid = True
+            else:
+                del node.next[index]
 
-    return at_least_one_valid
-
-
-check_configuration_each_leave.count_of_valid_configurations = 0
-check_configuration_each_leave.count_of_total_configurations = 0
-check_configuration_each_leave.count_error_configurations = 0
-check_configuration_each_leave.other_config_values = []
-check_configuration_each_leave.count_of_checked_configurations = 0
+        return at_least_one_valid
 
 
 def get_random_plant(system_specification: SystemSpecification):
 
-    plant = GraphPlant(system_specification.model.stations.grid)
+    plant = GraphPlant(system_specification)
     station_models_used: set[str] = set()
 
-    plant._grid[0][2] = system_specification.model.stations.models["InOut"]
+    plant.set_station_location_by_name("InOut", Vector(2, 0))
     station_models_used.add("InOut")
 
     while True:
@@ -135,7 +138,7 @@ def get_random_plant(system_specification: SystemSpecification):
             )
         ]
 
-        plant._grid[position.y][position.x] = station_model
+        plant.set_station_location_by_name(station_model.name, position)
 
         station_models_used.add(station_model.name)
 
@@ -152,7 +155,7 @@ if __name__ == "__main__":
     import pyvisgraph as vg  # pylint disable=import-error
 
     test_plant = get_random_plant(
-        SystemSpecification(model_stream=open("./model.yaml", "r"))
+        SystemSpecification(model_stream=open("./model.yaml", "r", encoding="utf8"))
     )
 
     test_plant.render()
