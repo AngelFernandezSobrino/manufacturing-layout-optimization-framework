@@ -48,6 +48,8 @@ Grid coordinates
 
 Grid first row is reserved for the conveyor, the stations are placed in the following rows.
 
+
+
 """
 
 from __future__ import annotations
@@ -81,6 +83,7 @@ class BasePlant(object):
 
         # To export and import plant configurations
         self.__config: list[tuple[Vector[int], StationNameType]] = []
+        self.__config_formated: list[tuple[str, StationNameType]] = []
 
         self._grid: list[list[Optional[StationModel]]] = [
             [None for x in range(self._grid_params.size.x)]
@@ -101,6 +104,13 @@ class BasePlant(object):
 
     def stations(self) -> Mapping[StationNameType, Vector[int] | int]:
         return self._station_locations
+
+    def stations_without_storage(self) -> Mapping[StationNameType, Vector[int]]:
+        """Get stations with only vector positions
+
+        WARNING: This method should be used only when the plant stations are already placed in the grid, otherwise the type of the station location could be an integer, which is used to store the station in the storage buffer. This is not guaranteed by the code, is up to the deveoper to ensure that.
+        """
+        return self._station_locations  # type: ignore
 
     def ready(self):
         self._not_ready = False
@@ -156,10 +166,16 @@ class BasePlant(object):
         ):
             if self._grid[y][x] is None:
                 if (
-                    (y > 0 and self._grid[y - 1][x] is not None)
+                    (y > 1 and self._grid[y - 1][x] is not None)
                     or (x > 0 and self._grid[y][x - 1] is not None)
-                    or (x < 4 and self._grid[y][x + 1] is not None)
-                    or (y < 4 and self._grid[y + 1][x] is not None)
+                    or (
+                        x < self._grid_params.size.x - 1
+                        and self._grid[y][x + 1] is not None
+                    )
+                    or (
+                        y < self._grid_params.size.x - 1
+                        and self._grid[y + 1][x] is not None
+                    )
                 ):
                     available_positions.append(Vector(x, y))
 
@@ -253,6 +269,12 @@ class BasePlant(object):
                 self._system_spec.model.stations.models[station_name].name, position
             )
 
+    def export_config_formated(self):
+        self.__config_formated = []
+        for station_name, position in self._station_locations.items():
+            self.__config_formated.append((map_location(position), station_name))
+        return self.__config_formated
+
     def render(self, width=15):
         table = prettytable.PrettyTable()
         column_names = list(
@@ -305,6 +327,24 @@ class GridIterator:
 
 
 PlantConfigType = list[tuple[Vector[int], StationNameType]]
+
+
+def map_location(value: Vector[int] | int) -> str:
+    if isinstance(value, Vector):
+        return f"{chr(ord('@') + value.y)}{value.x}"
+    else:
+        return f"SP{value + 1}"
+
+
+def format_location_to_render(
+    value: Vector[int] | int, spec: SystemSpecification
+) -> Vector[int] | int:
+    if isinstance(value, Vector):
+        # Invert the x value to match the formated direction
+        return Vector(spec.model.stations.grid.size.x - value.x, value.y)
+    else:
+        return value
+
 
 # Errors
 

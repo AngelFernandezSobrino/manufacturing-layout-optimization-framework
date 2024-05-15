@@ -76,9 +76,9 @@ def check_configuration_v2(
 
     graph.reset_positions()
 
-    for place, station in plant:
+    for station_name, place in plant.stations_without_storage().items():
         for node in graph.station_nodes:
-            if node.model.name == station.name:
+            if node.model.name == station_name:
                 node.position.set(place.x, place.y)
 
     plant.build_vis_graphs()
