@@ -46,6 +46,7 @@ Grid coordinates
       │ 0,2  │ 1,2  │ 2,2  │
       └──────┴──────┴──────┘
 
+Grid first row is reserved for the conveyor, the stations are placed in the following rows.
 
 """
 
@@ -222,17 +223,23 @@ class BasePlant(object):
 
     def render(self, width=15):
         table = prettytable.PrettyTable()
-        column_names = [""] + list(map(str, range(1, self._grid_params.size.x + 1)))
+        column_names = list(
+            map(str, reversed(range(1, self._grid_params.size.x + 1)))
+        ) + [""]
         table_width: dict[str, int] = {}
 
         for name in column_names:
             table_width[name] = width
         table.field_names = column_names
         table._min_width = table_width  # pylint: disable=protected-access
+        grid_iterator = iter(self._grid)
+        conveyor_row = next(grid_iterator)
+        shown_row = [value if value is not None else "" for value in conveyor_row]
+        table.add_row([*shown_row, "Conveyor"])
 
-        for row_index, row in enumerate(self._grid):
+        for row_index, row in enumerate(grid_iterator):
             shown_row = [value if value is not None else "" for value in row]
-            table.add_row([chr(ord("@") + row_index + 1), *shown_row])
+            table.add_row([*shown_row, chr(ord("@") + row_index + 1)])
 
         return table
 

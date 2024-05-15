@@ -17,9 +17,9 @@ class RearrangmentPlant(BasePlant):
         If it's doing a move operation, it will return the previous position of the station.
         """
 
-        print(
-            f"move_station: Moving {station_name} from {self._station_locations[station_name]} to {destiny}"
-        )
+        # print(
+        #     f"move_station: Moving {station_name} from {self._station_locations[station_name]} to {destiny}"
+        # )
 
         if destiny == "store":
             return (self._station_locations[station_name], self.store(station_name))
@@ -95,6 +95,21 @@ class RearrangmentPlantStorage(RearrangmentPlant):
             self._grid[previous_position.y][previous_position.x] = None
 
         return previous_position
+
+    def is_storage_buffer_not_empty(self) -> bool:
+        for station in self.storage_buffer:
+            if station is not None:
+                return True
+
+        return False
+
+    def render_storage_buffer(self, width: int = 20):
+        result = "|"
+        for station in self.storage_buffer:
+            station = station if station is not None else ""
+            result += f"{station:^{width}}|"
+
+        return result
 
 
 class RearrangmentPlantLimitedStorage(RearrangmentPlantStorage):
