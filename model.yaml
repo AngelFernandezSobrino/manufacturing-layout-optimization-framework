@@ -1,8 +1,8 @@
 Stations:
   Grid:
     Size:
-      X: 5
-      Y: 5
+      X: 4
+      Y: 5 # The first one is reserved for the conveyor belt modelling stations
     Measures:
       X: 0.8
       Y: 0.8
