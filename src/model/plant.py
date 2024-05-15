@@ -97,7 +97,7 @@ class BasePlant(object):
     # pylint: disable=missing-function-docstring
 
     def grid_iterator(self):
-        return GridIterator(self._grid).__iter__()
+        return iter(GridIterator(self._grid))
 
     def stations(self) -> Mapping[StationNameType, Vector[int] | int]:
         return self._station_locations
@@ -146,6 +146,38 @@ class BasePlant(object):
         station = self._grid[y][x]
         assert station is not None, f"Station at {x},{y} is None"
         return station
+
+    def get_adjacent_positions(self) -> list[Vector[int]]:
+
+        available_positions: list[Vector] = []
+
+        for x, y in itertools.product(
+            range(self._grid_params.size.x), range(1, self._grid_params.size.y)
+        ):
+            if self._grid[y][x] is None:
+                if (
+                    (y > 0 and self._grid[y - 1][x] is not None)
+                    or (x > 0 and self._grid[y][x - 1] is not None)
+                    or (x < 4 and self._grid[y][x + 1] is not None)
+                    or (y < 4 and self._grid[y + 1][x] is not None)
+                ):
+                    available_positions.append(Vector(x, y))
+
+        return available_positions
+
+    def get_stations_with_transport_positions(self) -> list[Vector]:
+
+        transport_vectors: list[Vector] = []
+
+        for station in self._station_models.values():
+            station_location = self._station_locations[station.name]
+            if station.transports is not None and isinstance(station_location, Vector):
+                transport_vectors.append(copy.deepcopy(station_location))
+
+        if len(transport_vectors) > 0:
+            return transport_vectors
+
+        return []
 
     def is_empty_by_coord(self, x: int, y: int):
         return self._grid[y][x] is None

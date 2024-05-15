@@ -53,46 +53,6 @@ def create_plant_from_node_with_station_models_used(
     return plant, station_models_used
 
 
-def get_available_positions(plant: GraphPlant) -> list[Vector[int]]:
-
-    available_positions: list[Vector] = []
-
-    for x, y in itertools.product(
-        range(plant._grid_params.size.x), range(1, plant._grid_params.size.y)
-    ):
-        if plant._grid[y][x] is None:
-            if (
-                (y > 0 and plant._grid[y - 1][x] is not None)
-                or (x > 0 and plant._grid[y][x - 1] is not None)
-                or (x < 4 and plant._grid[y][x + 1] is not None)
-                or (y < 4 and plant._grid[y + 1][x] is not None)
-            ):
-                available_positions.append(Vector(x, y))
-
-    return available_positions
-
-
-def get_stations_with_transport_vectors(
-    plant: GraphPlant,
-) -> list[Vector]:
-
-    transport_vectors: list[Vector] = []
-
-    for x, y in itertools.product(
-        range(plant._grid_params.size.x), range(plant._grid_params.size.y)
-    ):
-        station = plant.get_station_or_null_coord(x, y)
-        if station is None:
-            continue
-        if station.transports is not None:
-            transport_vectors.append(Vector(x, y))
-
-    if len(transport_vectors) > 0:
-        return transport_vectors
-
-    return []
-
-
 # Now we have the function to check if a configuration is valid or not, we can check all the configurations
 
 

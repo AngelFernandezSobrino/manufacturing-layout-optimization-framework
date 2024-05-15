@@ -48,7 +48,7 @@ class populate_next_nodes:
         if node.previous is not None:
             node.previous.next.append(node)
 
-        available_positions_array = graph_problem.get_available_positions(plant)
+        available_positions_array = plant.get_adjacent_positions()
 
         for position in available_positions_array:
             for value in station_models.values():
@@ -126,7 +126,7 @@ def get_random_plant(system_specification: SystemSpecification):
     station_models_used.add("InOut")
 
     while True:
-        available_positions = graph_problem.get_available_positions(plant)
+        available_positions = plant.get_adjacent_positions()
         # Get randome value from available_positions list
         position = available_positions[random.choice(range(len(available_positions)))]
         station_model = system_specification.model.stations.models[
