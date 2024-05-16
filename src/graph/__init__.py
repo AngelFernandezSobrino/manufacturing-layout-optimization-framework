@@ -234,17 +234,20 @@ class TreeNode:
     """
 
     def __init__(
-        self, station: model.StationModel, position: model.Vector[int], previous_node
+        self,
+        station_name: model.StationNameType,
+        position: model.Vector[int],
+        previous_node,
     ) -> None:
 
         self.next: list[TreeNode] = []
         self.previous: TreeNode | None = previous_node
 
-        self.station: model.StationModel = station
+        self.station_name: model.StationNameType = station_name
         self.position: model.Vector[int] = position
 
     def __str__(self) -> str:
-        return f"({self.station}-{self.position})"
+        return f"({self.station_name}-{self.position})"
 
     def count_leaves(self) -> int:
         if self.next is None:

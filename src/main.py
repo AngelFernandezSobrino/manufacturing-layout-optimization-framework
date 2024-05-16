@@ -45,9 +45,18 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
 
     flow_graph.print()
 
-    first_node = TreeNode(spec.model.stations.models["InOut"], Vector(2, 0), None)
+    first_nodes: list[TreeNode] = []
 
-    populate_next_nodes(first_node, spec.model.stations.models, spec)
+    for conveyor_station_name in spec.model.stations.grid.conveyor.keys():
+        first_nodes.append(
+            TreeNode(
+                conveyor_station_name,
+                Vector(2, 0),
+                first_nodes[-1] if len(first_nodes) > 0 else None,
+            )
+        )
+
+    populate_next_nodes(first_nodes[-1], spec.model.stations.models, spec)
 
     print(
         f"Size of the configs repo: {sys.getsizeof(populate_next_nodes.config_repository) / 1000 / 1000} MB"
@@ -60,7 +69,7 @@ def process(model_string: str = "", model_stream: TextIOWrapper | None = None):
         + str(populate_next_nodes.evaluated_nodes - populate_next_nodes.valid_nodes)
     )
 
-    check_configuration_each_leave(first_node, flow_graph, spec)
+    check_configuration_each_leave(first_nodes[-1], flow_graph, spec)
 
     print("Configurations checked")
 

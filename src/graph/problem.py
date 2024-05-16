@@ -1,8 +1,7 @@
 from __future__ import annotations
-import itertools
 
 from graph.process import ManufacturingProcessGraph
-from model import GridParams, tools
+from model import tools
 from model.plant_graph import GraphPlant, path_distance
 
 from . import (

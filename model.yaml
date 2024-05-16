@@ -2,11 +2,11 @@ Stations:
   Grid:
     Size:
       X: 4
-      Y: 5 # The first one is reserved for the conveyor belt modelling stations
+      Y: 4
     Measures:
       X: 0.8
       Y: 0.8
-    FixedNode: InOut
+    BufferSize: 3
   Models:
     InOut:
       Storage:

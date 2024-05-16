@@ -21,13 +21,12 @@ class SystemSpecification:
     def __init__(
         self, model_string: str = "", model_stream: TextIOWrapper | None = None
     ) -> None:
-
         if model_string != "":
             self.yaml_parsed: ModelSpecificationDict = yaml.full_load(
                 StringIO(model_string)
             )
         elif model_stream is not None:
-            self.yaml_parsed: ModelSpecificationDict = yaml.full_load(model_stream)
+            self.yaml_parsed = yaml.full_load(model_stream)
         else:
             raise ValueError("No model source provided")
 

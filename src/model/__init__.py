@@ -2,16 +2,15 @@
 """
 
 from __future__ import annotations
-
-import copy
-from dataclasses import dataclass
 import json
 from math import sqrt
-from typing import Generic, NotRequired, Optional, TypeVar, TypedDict, overload
+from typing import Generic, NotRequired, Optional, TypeVar, TypedDict
 
 import pyvisgraph as vg  # type: ignore
 
 IntOrFloat = TypeVar("IntOrFloat", int, float)
+
+# pylint: disable=missing-class-docstring
 
 
 class VectorDict(
@@ -82,6 +81,7 @@ class ModelSpecification:
 
 
 StationNameType = str
+ConveyorModelNameType = str
 
 
 class StationModel:
@@ -126,7 +126,7 @@ class StationModel:
     def render(self):  # pylance: disable=missing_function_docstring
         return f"{self.name} - {self.storages} - {self.transports} - {self.activities}"
 
-    def toJSON(self):  # pylance: disable=missing_function_docstring
+    def serialize(self):  # pylance: disable=missing_function_docstring
         return json.dumps(self)
 
     def get_absolute_obstacles(self, origin: Vector[float]) -> list[list[vg.Point]]:
@@ -219,6 +219,7 @@ class GridParams:
         )
         self.half_measures = Vector(self.measures.x / 2, self.measures.y / 2)
         self.size: Vector[int] = Vector(grid_dict["Size"]["X"], grid_dict["Size"]["Y"])
+        self.buffer_size: int = grid_dict["BufferSize"]
 
 
 class Activity:
@@ -238,12 +239,19 @@ class Activity:
 
 class StationsDict(TypedDict):
     Grid: GridParamsDict
-    Models: dict[str, StationModelDict]
+    Models: dict[StationNameType, StationModelDict]
 
 
 class GridParamsDict(TypedDict):
     Size: VectorDict[int]
     Measures: VectorDict[float]
+    BufferSize: int
+    Conveyor: dict[ConveyorModelNameType, ConveyorModelDict]
+
+
+class ConveyorModelDict(TypedDict):
+    Place: int
+    Storage: list[StorageDict]
 
 
 class ActivityDict(TypedDict):
